@@ -275,6 +275,8 @@ const AuthPageContent = () => {
     }
   };
 
+  // Commented out Google sign-in functionality
+  /*
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setErrors({});
@@ -293,6 +295,7 @@ const AuthPageContent = () => {
       setIsLoading(false);
     }
   };
+  */
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -489,6 +492,8 @@ const AuthPageContent = () => {
                                         )}
                                     </motion.button>
                                     
+                                    {/* Commented out Google Sign-in section */}
+                                    {/*
                                     <div className="relative py-2">
                                         <div className="absolute inset-0 flex items-center">
                                             <div className="w-full border-t border-slate-200" />
@@ -520,6 +525,7 @@ const AuthPageContent = () => {
                                             </>
                                         )}
                                     </motion.button>
+                                    */}
                                     
                                     <p className="text-center pt-4 text-slate-600">
                                         {isLogin ? "Don't have an account?" : "Already have an account?"}
