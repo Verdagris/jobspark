@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'www.netlify.com',
         port: '',
-        pathname: '/**',
+        pathname: '/v3/img/components/**',
       },
     ],
   },
