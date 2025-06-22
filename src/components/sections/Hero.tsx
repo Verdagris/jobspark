@@ -9,6 +9,7 @@ import {
   Star,
   CheckCircle,
   ExternalLink,
+  Mic,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -100,67 +101,99 @@ const animationScenes = [
   {
     key: "cv",
     icon: FileText,
-    title: "Generating Your CV...",
+    title: "AI CV Generation",
     content: (
-      <div className="space-y-3 w-full px-4">
+      <div className="w-full space-y-2">
+        <div className="text-xs text-slate-600 mb-3">Building your professional CV...</div>
         <motion.div 
-          className="h-3 w-full bg-gradient-to-r from-sky-200 to-sky-300 rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-        />
+          className="h-2 w-full bg-slate-200 rounded-full overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <motion.div
+            className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full"
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ duration: 2, ease: "easeOut" }}
+          />
+        </motion.div>
         <motion.div 
-          className="h-3 w-4/5 bg-gradient-to-r from-sky-200 to-sky-300 rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: "80%" }}
-          transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
-        />
+          className="h-2 w-4/5 bg-slate-200 rounded-full overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <motion.div
+            className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full"
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ duration: 1.8, delay: 0.5, ease: "easeOut" }}
+          />
+        </motion.div>
         <motion.div 
-          className="h-3 w-full bg-gradient-to-r from-sky-200 to-sky-300 rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 1.5, delay: 0.6, ease: "easeOut" }}
-        />
-        <motion.div 
-          className="h-3 w-3/4 bg-gradient-to-r from-sky-200 to-sky-300 rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: "75%" }}
-          transition={{ duration: 1.5, delay: 0.9, ease: "easeOut" }}
-        />
+          className="h-2 w-full bg-slate-200 rounded-full overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          <motion.div
+            className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full"
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ duration: 1.5, delay: 0.8, ease: "easeOut" }}
+          />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 2.5, type: "spring" }}
+          className="flex items-center justify-center mt-3 text-xs text-green-600 font-semibold"
+        >
+          <CheckCircle className="w-3 h-3 mr-1" />
+          CV Generated Successfully!
+        </motion.div>
       </div>
     ),
   },
   {
     key: "interview",
     icon: MessageSquare,
-    title: "AI Interview Practice",
+    title: "Interview Practice",
     content: (
-      <div className="text-center px-4">
+      <div className="w-full text-center">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className="mb-4 p-3 bg-purple-100 rounded-full inline-block"
+          className="mb-3 p-2 bg-purple-100 rounded-full inline-block"
         >
-          <MessageSquare className="w-6 h-6 text-purple-600" />
+          <Mic className="w-4 h-4 text-purple-600" />
         </motion.div>
-        <motion.p
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="text-sm font-medium text-purple-700 bg-purple-50 px-4 py-2 rounded-lg border border-purple-200"
+          className="text-xs font-medium text-purple-700 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200 mb-3"
         >
-          "Tell me about a time you showed leadership."
-        </motion.p>
+          "Tell me about your leadership experience."
+        </motion.div>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="mt-3 flex items-center justify-center space-x-1"
+          className="flex items-center justify-center space-x-1 mb-2"
         >
-          <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
-          <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-          <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
+          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
+          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="text-xs text-slate-600"
+        >
+          AI analyzing your response...
         </motion.div>
       </div>
     ),
@@ -168,36 +201,39 @@ const animationScenes = [
   {
     key: "match",
     icon: Briefcase,
-    title: "Connecting to Employers...",
+    title: "Job Matching",
     content: (
-      <div className="text-center px-4">
-        <div className="relative mb-4">
-          {[...Array(3)].map((_, i) => (
+      <div className="w-full">
+        <div className="text-xs text-slate-600 mb-3 text-center">Finding perfect matches...</div>
+        <div className="space-y-2">
+          {[
+            { company: "Takealot", match: "95%", color: "green" },
+            { company: "Discovery", match: "88%", color: "blue" },
+            { company: "Naspers", match: "82%", color: "purple" }
+          ].map((job, i) => (
             <motion.div
               key={i}
-              className="absolute inset-0 p-3 bg-green-100 border-2 border-green-200 rounded-xl flex items-center justify-center"
-              initial={{ y: 0, rotate: 0, scale: 1, opacity: 0.8 }}
-              animate={{ 
-                y: -i * 8,
-                rotate: (i - 1) * 5,
-                scale: 1 - i * 0.05,
-                opacity: 1 - i * 0.2
-              }}
-              transition={{ type: "spring", stiffness: 100, damping: 10, delay: i * 0.2 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.3, type: "spring" }}
+              className={`flex items-center justify-between p-2 bg-${job.color}-50 border border-${job.color}-200 rounded-lg`}
             >
-              <Briefcase className="w-5 h-5 text-green-600 mr-2"/>
-              <span className="font-semibold text-green-800 text-sm">Company {i + 1}</span>
+              <div className="flex items-center space-x-2">
+                <Briefcase className={`w-3 h-3 text-${job.color}-600`} />
+                <span className="text-xs font-medium text-slate-700">{job.company}</span>
+              </div>
+              <span className={`text-xs font-bold text-${job.color}-600`}>{job.match}</span>
             </motion.div>
           ))}
         </div>
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1, type: "spring" }}
-          className="mt-12 flex items-center justify-center gap-2 bg-green-100 p-3 rounded-lg text-green-800 font-semibold border border-green-200"
+          transition={{ delay: 1.2, type: "spring" }}
+          className="flex items-center justify-center mt-3 text-xs text-green-600 font-semibold"
         >
-          <CheckCircle className="w-5 h-5" />
-          <span>Perfect Match!</span>
+          <Star className="w-3 h-3 mr-1 fill-current" />
+          3 Perfect Matches Found!
         </motion.div>
       </div>
     ),
@@ -275,17 +311,17 @@ export const Hero = () => {
             {/* Laptop Image */}
             <Image
               src="/image.png"
-              alt="Laptop"
+              alt="Laptop showing JobSpark interface"
               width={800}
               height={600}
               className="w-full h-auto"
               priority
             />
             
-            {/* Screen Content Overlay */}
-            <div className="absolute top-[8%] left-[12%] right-[12%] bottom-[45%] bg-white rounded-lg overflow-hidden shadow-inner">
+            {/* Screen Content Overlay - Precisely positioned */}
+            <div className="absolute top-[6%] left-[13.5%] right-[13.5%] bottom-[47%] bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg overflow-hidden shadow-inner border border-slate-200/50">
               {/* Screen Content */}
-              <div className="w-full h-full bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center p-4">
+              <div className="w-full h-full flex flex-col items-center justify-center p-4 relative">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={sceneIndex}
@@ -293,36 +329,38 @@ export const Hero = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.5, ease: "easeInOut" }}
-                    className="w-full flex flex-col items-center justify-center space-y-4 text-center"
+                    className="w-full flex flex-col items-center justify-center space-y-3 text-center h-full"
                   >
                     {/* Icon */}
                     <motion.div
-                      className="p-3 bg-white rounded-full shadow-lg border border-slate-200"
-                      animate={{ scale: [1, 1.1, 1] }}
+                      className="p-2 bg-white rounded-full shadow-md border border-slate-200"
+                      animate={{ scale: [1, 1.05, 1] }}
                       transition={{
                         duration: 2,
                         repeat: Infinity,
                         ease: "easeInOut",
                       }}
                     >
-                      <CurrentIcon className="w-6 h-6 text-sky-500" />
+                      <CurrentIcon className="w-5 h-5 text-sky-500" />
                     </motion.div>
                     
                     {/* Title */}
-                    <h3 className="font-bold text-slate-800 text-sm lg:text-base">
+                    <h3 className="font-bold text-slate-800 text-sm">
                       {CurrentScene.title}
                     </h3>
                     
                     {/* Content */}
-                    <div className="w-full flex items-center justify-center min-h-[80px]">
-                      {CurrentScene.content}
+                    <div className="w-full flex-1 flex items-center justify-center">
+                      <div className="w-full max-w-[200px]">
+                        {CurrentScene.content}
+                      </div>
                     </div>
                   </motion.div>
                 </AnimatePresence>
               </div>
               
               {/* Screen Reflection Effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none rounded-lg" />
             </div>
             
             {/* Subtle Glow Effect */}
