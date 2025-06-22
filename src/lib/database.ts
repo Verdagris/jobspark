@@ -77,6 +77,20 @@ export interface CVVersion {
   created_at: string;
 }
 
+export interface InterviewSession {
+  id: string;
+  user_id: string;
+  role: string;
+  experience_years: number;
+  context: string | null;
+  overall_score: number;
+  duration_minutes: number;
+  questions_count: number;
+  session_data: any; // JSON data with questions and responses
+  insights: any; // JSON data with analysis
+  created_at: string;
+}
+
 // User Profile Functions
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   try {
@@ -380,4 +394,50 @@ export async function getLatestCVVersion(cvId: string, sectionType: string): Pro
 
   if (error) throw error;
   return data;
+}
+
+// Interview Sessions Functions
+export async function getUserInterviewSessions(userId: string): Promise<InterviewSession[]> {
+  const { data, error } = await supabase
+    .from('interview_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createInterviewSession(session: Omit<InterviewSession, 'id' | 'created_at'>): Promise<InterviewSession> {
+  const { data, error } = await supabase
+    .from('interview_sessions')
+    .insert([session])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getInterviewSessionById(id: string): Promise<InterviewSession | null> {
+  const { data, error } = await supabase
+    .from('interview_sessions')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getInterviewInsights(userId: string, limit: number = 5): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('interview_sessions')
+    .select('role, overall_score, insights, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data || [];
 }

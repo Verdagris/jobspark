@@ -25,11 +25,14 @@ import {
   Award,
   BookOpen,
   Lightbulb,
+  History,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
-import { getUserProfile, getUserExperiences, getUserEducation, getUserSkills } from "@/lib/database";
+import { useAutoInterview } from "@/hooks/useAutoInterview";
+import { getUserProfile, getUserExperiences, getUserEducation, getUserSkills, getUserInterviewSessions, getInterviewInsights } from "@/lib/database";
 
 interface Question {
   id: number;
@@ -49,6 +52,8 @@ interface QuestionResponse {
     strengths: string[];
     improvements: string[];
     feedback: string;
+    metrics?: any;
+    timeAnalysis?: any;
   };
 }
 
@@ -56,6 +61,14 @@ interface InterviewSetup {
   role: string;
   experienceYears: number;
   context: string;
+}
+
+interface PastSession {
+  id: string;
+  role: string;
+  overall_score: number;
+  created_at: string;
+  insights: any;
 }
 
 const InterviewPracticePage = () => {
@@ -79,16 +92,30 @@ const InterviewPracticePage = () => {
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
   
-  // Speech recognition
+  // Speech recognition with auto-detection
   const {
     isListening,
     transcript,
+    finalTranscript,
+    interimTranscript,
     startListening,
     stopListening,
     resetTranscript,
     error: speechError,
-    isSupported: speechSupported
+    isSupported: speechSupported,
+    confidence
   } = useSpeechToText();
+
+  // Auto interview management
+  const {
+    isWaitingForResponse,
+    silenceDetected,
+    startWaitingForResponse,
+    stopWaitingForResponse,
+    resetSilenceDetection,
+    onSilenceDetected,
+    detectSilence
+  } = useAutoInterview(3000, 20); // 3 seconds silence, min 20 chars
   
   // Timing
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
@@ -98,6 +125,11 @@ const InterviewPracticePage = () => {
   // Results
   const [finalAnalysis, setFinalAnalysis] = useState<any>(null);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  
+  // Past sessions
+  const [pastSessions, setPastSessions] = useState<PastSession[]>([]);
+  const [showPastSessions, setShowPastSessions] = useState(false);
+  const [loadingPastSessions, setLoadingPastSessions] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -120,6 +152,43 @@ const InterviewPracticePage = () => {
       }
     };
   }, [currentStep, questionStartTime]);
+
+  // Auto-detect silence and move to next question
+  useEffect(() => {
+    if (isWaitingForResponse && isListening) {
+      detectSilence(transcript, isListening);
+    }
+  }, [transcript, isListening, isWaitingForResponse, detectSilence]);
+
+  // Set up silence detection callback
+  useEffect(() => {
+    onSilenceDetected(() => {
+      if (transcript.trim().length > 20) {
+        submitResponse();
+      }
+    });
+  }, [transcript]);
+
+  // Load past sessions on component mount
+  useEffect(() => {
+    if (user) {
+      loadPastSessions();
+    }
+  }, [user]);
+
+  const loadPastSessions = async () => {
+    if (!user) return;
+    
+    setLoadingPastSessions(true);
+    try {
+      const sessions = await getUserInterviewSessions(user.id);
+      setPastSessions(sessions.slice(0, 5)); // Show last 5 sessions
+    } catch (error) {
+      console.error('Error loading past sessions:', error);
+    } finally {
+      setLoadingPastSessions(false);
+    }
+  };
 
   // Load user CV data
   const loadUserCVData = async () => {
@@ -173,10 +242,14 @@ const InterviewPracticePage = () => {
       setInterviewStartTime(Date.now());
       setQuestionStartTime(Date.now());
       
-      // Play first question if audio is enabled
-      if (audioEnabled && data.questions.length > 0) {
-        playQuestion(data.questions[0].question);
-      }
+      // Auto-start the interview flow
+      setTimeout(() => {
+        if (audioEnabled && data.questions.length > 0) {
+          playQuestionAndStartListening(data.questions[0].question);
+        } else {
+          startListeningFlow();
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error generating questions:', error);
       alert('Failed to generate interview questions. Please try again.');
@@ -185,9 +258,12 @@ const InterviewPracticePage = () => {
     }
   };
 
-  // Play question using text-to-speech
-  const playQuestion = async (questionText: string) => {
-    if (!audioEnabled) return;
+  // Play question and automatically start listening
+  const playQuestionAndStartListening = async (questionText: string) => {
+    if (!audioEnabled) {
+      startListeningFlow();
+      return;
+    }
     
     try {
       setIsPlayingQuestion(true);
@@ -209,17 +285,31 @@ const InterviewPracticePage = () => {
       audio.onended = () => {
         setIsPlayingQuestion(false);
         URL.revokeObjectURL(audioUrl);
+        // Automatically start listening after question finishes
+        setTimeout(() => {
+          startListeningFlow();
+        }, 500);
       };
       
       audio.onerror = () => {
         setIsPlayingQuestion(false);
         URL.revokeObjectURL(audioUrl);
+        startListeningFlow();
       };
       
       await audio.play();
     } catch (error) {
       console.error('Error playing question:', error);
       setIsPlayingQuestion(false);
+      startListeningFlow();
+    }
+  };
+
+  // Start the listening flow
+  const startListeningFlow = () => {
+    if (speechSupported) {
+      startListening();
+      startWaitingForResponse();
     }
   };
 
@@ -234,10 +324,16 @@ const InterviewPracticePage = () => {
 
   // Submit response and move to next question
   const submitResponse = async () => {
-    if (!transcript.trim()) return;
+    if (!finalTranscript.trim() && !interimTranscript.trim()) return;
     
+    const responseText = (finalTranscript + ' ' + interimTranscript).trim();
     const currentQuestion = questions[currentQuestionIndex];
     const duration = Date.now() - questionStartTime;
+    
+    // Stop listening and waiting
+    stopListening();
+    stopWaitingForResponse();
+    resetSilenceDetection();
     
     setIsAnalyzing(true);
     
@@ -248,11 +344,12 @@ const InterviewPracticePage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: currentQuestion.question,
-          response: transcript,
+          response: responseText,
           questionType: currentQuestion.type,
           keyPoints: currentQuestion.keyPoints,
           role: interviewSetup.role,
-          experienceYears: interviewSetup.experienceYears
+          experienceYears: interviewSetup.experienceYears,
+          duration
         })
       });
       
@@ -263,14 +360,16 @@ const InterviewPracticePage = () => {
       // Save the response
       const newResponse: QuestionResponse = {
         question: currentQuestion.question,
-        response: transcript,
+        response: responseText,
         score: analysis.score,
         type: currentQuestion.type,
         duration,
         analysis: {
           strengths: analysis.strengths,
           improvements: analysis.improvements,
-          feedback: analysis.feedback
+          feedback: analysis.feedback,
+          metrics: analysis.metrics,
+          timeAnalysis: analysis.timeAnalysis
         }
       };
       
@@ -282,12 +381,14 @@ const InterviewPracticePage = () => {
         setQuestionStartTime(Date.now());
         resetTranscript();
         
-        // Play next question
-        if (audioEnabled) {
-          setTimeout(() => {
-            playQuestion(questions[currentQuestionIndex + 1].question);
-          }, 1000);
-        }
+        // Auto-play next question and start listening
+        setTimeout(() => {
+          if (audioEnabled) {
+            playQuestionAndStartListening(questions[currentQuestionIndex + 1].question);
+          } else {
+            startListeningFlow();
+          }
+        }, 2000); // 2 second pause between questions
       } else {
         // Interview complete
         finishInterview([...responses, newResponse]);
@@ -322,6 +423,35 @@ const InterviewPracticePage = () => {
       
       const analysis = await analysisResponse.json();
       setFinalAnalysis(analysis);
+      
+      // Save session to database
+      if (user) {
+        try {
+          await fetch('/api/interview/save-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              role: interviewSetup.role,
+              experienceYears: interviewSetup.experienceYears,
+              context: interviewSetup.context,
+              overallScore: analysis.overallScore,
+              durationMinutes: Math.round(overallDuration / 60000),
+              questionsCount: questions.length,
+              sessionData: {
+                questions,
+                responses: allResponses,
+                setup: interviewSetup
+              },
+              insights: analysis
+            })
+          });
+        } catch (error) {
+          console.error('Error saving session:', error);
+          // Don't fail the interview if saving fails
+        }
+      }
+      
       setCurrentStep('results');
     } catch (error) {
       console.error('Error generating final analysis:', error);
@@ -340,6 +470,8 @@ const InterviewPracticePage = () => {
     setFinalAnalysis(null);
     resetTranscript();
     stopAudio();
+    stopListening();
+    stopWaitingForResponse();
     setCurrentQuestionDuration(0);
   };
 
@@ -421,6 +553,44 @@ const InterviewPracticePage = () => {
                 </p>
               </div>
 
+              {/* Past Sessions */}
+              {pastSessions.length > 0 && (
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <History className="w-5 h-5 text-slate-600" />
+                      <h3 className="font-semibold text-slate-900">Recent Practice Sessions</h3>
+                    </div>
+                    <button
+                      onClick={() => setShowPastSessions(!showPastSessions)}
+                      className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                    >
+                      {showPastSessions ? 'Hide' : 'View All'}
+                    </button>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {pastSessions.slice(0, showPastSessions ? pastSessions.length : 3).map((session) => (
+                      <div key={session.id} className="bg-slate-50 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-slate-900 text-sm">{session.role}</span>
+                          <div className="flex items-center space-x-1">
+                            <BarChart3 className="w-4 h-4 text-purple-500" />
+                            <span className="text-sm font-bold text-purple-600">{session.overall_score}%</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-600">
+                          {new Date(session.created_at).toLocaleDateString()}
+                        </p>
+                        {session.insights?.readinessLevel && (
+                          <p className="text-xs text-slate-500 mt-1">{session.insights.readinessLevel}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="bg-white rounded-xl border border-slate-200 p-8">
                 <div className="space-y-6">
                   <div>
@@ -473,12 +643,13 @@ const InterviewPracticePage = () => {
                     <div className="flex items-start space-x-3">
                       <Volume2 className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div className="text-sm text-blue-800">
-                        <p className="font-semibold mb-1">Audio Features</p>
-                        <p>This interview will use voice technology:</p>
+                        <p className="font-semibold mb-1">Natural Interview Experience</p>
+                        <p>This interview will feel like a real conversation:</p>
                         <ul className="list-disc list-inside mt-2 space-y-1">
                           <li>Questions will be read aloud using AI voice</li>
-                          <li>You can respond using speech-to-text</li>
-                          <li>Make sure your microphone is working</li>
+                          <li>Speak naturally - we'll detect when you're done</li>
+                          <li>No need to click buttons during the interview</li>
+                          <li>Get real-time feedback on your responses</li>
                         </ul>
                         <label className="flex items-center space-x-2 mt-3">
                           <input
@@ -552,7 +723,7 @@ const InterviewPracticePage = () => {
                     <div className="flex items-center space-x-2 ml-4">
                       {audioEnabled && (
                         <button
-                          onClick={() => isPlayingQuestion ? stopAudio() : playQuestion(currentQuestion.question)}
+                          onClick={() => isPlayingQuestion ? stopAudio() : playQuestionAndStartListening(currentQuestion.question)}
                           className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                         >
                           {isPlayingQuestion ? (
@@ -582,44 +753,55 @@ const InterviewPracticePage = () => {
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-slate-900">Your Response</h3>
                     <div className="flex items-center space-x-2">
-                      {speechSupported && (
-                        <button
-                          onClick={isListening ? stopListening : startListening}
-                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                            isListening 
-                              ? 'bg-red-500 text-white hover:bg-red-600' 
-                              : 'bg-green-500 text-white hover:bg-green-600'
-                          }`}
-                        >
+                      {speechSupported && !isAnalyzing && (
+                        <div className="flex items-center space-x-2">
                           {isListening ? (
-                            <>
-                              <MicOff className="w-4 h-4" />
-                              <span>Stop</span>
-                            </>
+                            <div className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-800 rounded-lg">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                              <span className="text-sm font-medium">Listening...</span>
+                            </div>
                           ) : (
-                            <>
+                            <button
+                              onClick={startListeningFlow}
+                              className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                            >
                               <Mic className="w-4 h-4" />
-                              <span>Speak</span>
-                            </>
+                              <span>Start Speaking</span>
+                            </button>
                           )}
+                        </div>
+                      )}
+                      
+                      {transcript.trim() && !isAnalyzing && (
+                        <button
+                          onClick={submitResponse}
+                          className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                        >
+                          <Send className="w-4 h-4" />
+                          <span>Submit</span>
                         </button>
                       )}
-                      <button
-                        onClick={resetTranscript}
-                        className="p-2 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
 
-                  <textarea
-                    rows={6}
-                    value={transcript}
-                    onChange={(e) => resetTranscript()}
-                    placeholder={speechSupported ? "Click 'Speak' to use voice input, or type your response here..." : "Type your response here..."}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  />
+                  <div className="relative">
+                    <textarea
+                      rows={6}
+                      value={transcript}
+                      readOnly
+                      placeholder={speechSupported ? "Start speaking to see your response here..." : "Type your response here..."}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none bg-slate-50"
+                    />
+                    
+                    {isAnalyzing && (
+                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-5 h-5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+                          <span className="text-purple-600 font-medium">Analyzing your response...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {speechError && (
                     <div className="text-red-600 text-sm flex items-center space-x-2">
@@ -628,10 +810,16 @@ const InterviewPracticePage = () => {
                     </div>
                   )}
 
-                  {isListening && (
-                    <div className="text-green-600 text-sm flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span>Listening... Speak clearly into your microphone</span>
+                  {isWaitingForResponse && isListening && (
+                    <div className="text-blue-600 text-sm flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                      <span>We'll automatically move to the next question when you finish speaking...</span>
+                    </div>
+                  )}
+
+                  {confidence > 0 && (
+                    <div className="text-xs text-slate-500">
+                      Speech confidence: {Math.round(confidence * 100)}%
                     </div>
                   )}
                 </div>
@@ -640,21 +828,9 @@ const InterviewPracticePage = () => {
                   <div className="text-sm text-slate-500">
                     Expected duration: ~{Math.floor(currentQuestion.expectedDuration / 60)} minutes
                   </div>
-                  <button
-                    onClick={submitResponse}
-                    disabled={!transcript.trim() || isAnalyzing}
-                    className="flex items-center space-x-2 px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isAnalyzing ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                    <span>
-                      {isAnalyzing ? 'Analyzing...' : 
-                       currentQuestionIndex === questions.length - 1 ? 'Finish Interview' : 'Next Question'}
-                    </span>
-                  </button>
+                  <div className="text-sm text-slate-600">
+                    {currentQuestionIndex === questions.length - 1 ? 'Final question' : `${questions.length - currentQuestionIndex - 1} questions remaining`}
+                  </div>
                 </div>
               </div>
             </motion.div>
