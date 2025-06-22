@@ -9,11 +9,9 @@ import {
   Star,
   CheckCircle,
   ExternalLink,
-  Mic,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
 // --- Custom Spotlight Button (Unchanged, it's solid) ---
 const SpotlightButton = ({ children, href }: { children: React.ReactNode; href?: string }) => {
@@ -96,146 +94,49 @@ const FlipButton = ({
   );
 };
 
-// --- Animation Scenes for the Laptop Screen ---
+// --- Animation Scenes for the Viewport ---
 const animationScenes = [
   {
     key: "cv",
     icon: FileText,
-    title: "AI CV Generation",
+    title: "Generating Your CV...",
     content: (
-      <div className="w-full space-y-2">
-        <div className="text-xs text-slate-600 mb-3">Building your professional CV...</div>
-        <motion.div 
-          className="h-2 w-full bg-slate-200 rounded-full overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <motion.div
-            className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full"
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 2, ease: "easeOut" }}
-          />
-        </motion.div>
-        <motion.div 
-          className="h-2 w-4/5 bg-slate-200 rounded-full overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <motion.div
-            className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full"
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 1.8, delay: 0.5, ease: "easeOut" }}
-          />
-        </motion.div>
-        <motion.div 
-          className="h-2 w-full bg-slate-200 rounded-full overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-        >
-          <motion.div
-            className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full"
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 1.5, delay: 0.8, ease: "easeOut" }}
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 2.5, type: "spring" }}
-          className="flex items-center justify-center mt-3 text-xs text-green-600 font-semibold"
-        >
-          <CheckCircle className="w-3 h-3 mr-1" />
-          CV Generated Successfully!
-        </motion.div>
+      <div className="space-y-2 w-full">
+        <div className="h-2.5 w-full bg-slate-200 rounded-full animate-pulse" />
+        <div className="h-2.5 w-4/5 bg-slate-200 rounded-full animate-pulse" />
+        <div className="h-2.5 w-full bg-slate-200 rounded-full animate-pulse" />
       </div>
     ),
   },
   {
     key: "interview",
     icon: MessageSquare,
-    title: "Interview Practice",
+    title: "AI Interview Practice",
     content: (
-      <div className="w-full text-center">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className="mb-3 p-2 bg-purple-100 rounded-full inline-block"
-        >
-          <Mic className="w-4 h-4 text-purple-600" />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="text-xs font-medium text-purple-700 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200 mb-3"
-        >
-          "Tell me about your leadership experience."
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="flex items-center justify-center space-x-1 mb-2"
-        >
-          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
-          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="text-xs text-slate-600"
-        >
-          AI analyzing your response...
-        </motion.div>
-      </div>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="text-sm text-center font-medium text-indigo-700 bg-indigo-100 px-3 py-2 rounded-lg"
+      >
+        "Great point! Try elaborating on the STAR method."
+      </motion.p>
     ),
   },
   {
     key: "match",
     icon: Briefcase,
-    title: "Job Matching",
+    title: "Connecting to Employers...",
     content: (
-      <div className="w-full">
-        <div className="text-xs text-slate-600 mb-3 text-center">Finding perfect matches...</div>
-        <div className="space-y-2">
-          {[
-            { company: "Takealot", match: "95%", color: "green" },
-            { company: "Discovery", match: "88%", color: "blue" },
-            { company: "Naspers", match: "82%", color: "purple" }
-          ].map((job, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.3, type: "spring" }}
-              className={`flex items-center justify-between p-2 bg-${job.color}-50 border border-${job.color}-200 rounded-lg`}
-            >
-              <div className="flex items-center space-x-2">
-                <Briefcase className={`w-3 h-3 text-${job.color}-600`} />
-                <span className="text-xs font-medium text-slate-700">{job.company}</span>
-              </div>
-              <span className={`text-xs font-bold text-${job.color}-600`}>{job.match}</span>
-            </motion.div>
-          ))}
-        </div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.2, type: "spring" }}
-          className="flex items-center justify-center mt-3 text-xs text-green-600 font-semibold"
-        >
-          <Star className="w-3 h-3 mr-1 fill-current" />
-          3 Perfect Matches Found!
-        </motion.div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.5, type: "spring" }}
+        className="flex items-center justify-center gap-2 bg-green-100 p-3 rounded-lg text-green-800 font-semibold"
+      >
+        <CheckCircle className="w-5 h-5" />
+        <span>You're a Match!</span>
+      </motion.div>
     ),
   },
 ];
@@ -299,72 +200,41 @@ export const Hero = () => {
           </motion.div>
         </motion.div>
 
-        {/* --- Laptop with Animated Screen --- */}
+        {/* --- Enhanced Animated Viewport --- */}
         <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="relative w-full max-w-2xl mx-auto"
+          whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
+          className="relative w-full max-w-lg mx-auto aspect-[4/3]"
         >
-          {/* Laptop Container */}
-          <div className="relative">
-            {/* Laptop Image */}
-            <Image
-              src="/image.png"
-              alt="Laptop showing JobSpark interface"
-              width={800}
-              height={600}
-              className="w-full h-auto"
-              priority
-            />
-            
-            {/* Screen Content Overlay - Precisely positioned */}
-            <div className="absolute top-[6%] left-[13.5%] right-[13.5%] bottom-[47%] bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg overflow-hidden shadow-inner border border-slate-200/50">
-              {/* Screen Content */}
-              <div className="w-full h-full flex flex-col items-center justify-center p-4 relative">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={sceneIndex}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                    className="w-full flex flex-col items-center justify-center space-y-3 text-center h-full"
-                  >
-                    {/* Icon */}
-                    <motion.div
-                      className="p-2 bg-white rounded-full shadow-md border border-slate-200"
-                      animate={{ scale: [1, 1.05, 1] }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    >
-                      <CurrentIcon className="w-5 h-5 text-sky-500" />
-                    </motion.div>
-                    
-                    {/* Title */}
-                    <h3 className="font-bold text-slate-800 text-sm">
-                      {CurrentScene.title}
-                    </h3>
-                    
-                    {/* Content */}
-                    <div className="w-full flex-1 flex items-center justify-center">
-                      <div className="w-full max-w-[200px]">
-                        {CurrentScene.content}
-                      </div>
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-              
-              {/* Screen Reflection Effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none rounded-lg" />
-            </div>
-            
-            {/* Subtle Glow Effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-sky-200/20 to-indigo-200/20 rounded-3xl blur-3xl -z-10 animate-pulse-slow" />
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-200 to-indigo-200 rounded-3xl opacity-40 blur-2xl animate-pulse-slow"></div>
+          <div className="relative w-full h-full bg-white/60 backdrop-blur-xl border-2 border-white/80 rounded-3xl p-6 shadow-2xl shadow-slate-400/20 flex flex-col items-center justify-center text-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={sceneIndex}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+                className="w-full flex flex-col items-center justify-center space-y-4"
+              >
+                <motion.div
+                  className="p-3 bg-white rounded-full shadow-lg"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <CurrentIcon className="w-8 h-8 text-sky-500" />
+                </motion.div>
+                <p className="font-bold text-slate-800 text-lg">
+                  {CurrentScene.title}
+                </p>
+                <div className="w-full h-20 flex items-center justify-center px-4">
+                  {CurrentScene.content}
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>
