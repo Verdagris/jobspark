@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
-import { FileText, MessageSquare, Briefcase, Target, Mic, CheckCircle, Star, TrendingUp, Building2 } from "lucide-react";
+import { FileText, MessageSquare, Briefcase, Target, Mic, CheckCircle, Star, TrendingUp, Building2, Users } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 // --- Enhanced Visual Components ---
@@ -90,26 +90,34 @@ const ConnectionsVisual = () => (
           <Briefcase className="w-5 h-5 text-green-600" />
           <p className="font-bold text-slate-800 text-sm sm:text-lg">Matching Companies...</p>
         </div>
-        <div className="relative w-full max-w-[200px] h-20 sm:h-24">
+        <div className="relative w-full max-w-[240px] h-32 sm:h-36">
             {[
-              { name: "Takealot", color: "bg-blue-100 border-blue-200", textColor: "text-blue-800", score: 95 },
-              { name: "Discovery", color: "bg-green-100 border-green-200", textColor: "text-green-800", score: 92 },
-              { name: "Capitec", color: "bg-purple-100 border-purple-200", textColor: "text-purple-800", score: 89 }
+              { name: "Takealot", logo: "T", bgColor: "bg-blue-500", textColor: "text-white", score: 95 },
+              { name: "Discovery", logo: "D", bgColor: "bg-green-500", textColor: "text-white", score: 92 },
+              { name: "Capitec", logo: "C", bgColor: "bg-purple-500", textColor: "text-white", score: 89 }
             ].map((company, i) => (
                 <motion.div
                     key={i}
-                    className={`absolute w-full h-full p-3 sm:p-4 ${company.color} border-2 rounded-xl flex items-center justify-between`}
-                    initial={{ y: 0, rotate: 0, scale: 1 }}
+                    className="absolute w-full h-20 sm:h-24 p-3 sm:p-4 bg-white border-2 border-slate-200 rounded-xl flex items-center justify-between shadow-md"
+                    initial={{ y: 0, rotate: 0, scale: 1, opacity: 0 }}
                     animate={{ 
-                        y: -i * 12,
-                        rotate: (i - 1) * 8,
-                        scale: 1 - i * 0.05
+                        y: -i * 16,
+                        rotate: (i - 1) * 4,
+                        scale: 1 - i * 0.03,
+                        opacity: 1
                     }}
                     transition={{ type: "spring", stiffness: 100, damping: 10, delay: i * 0.2 }}
                 >
-                    <div className="flex items-center space-x-2">
-                      <Building2 className="w-4 h-4 text-current"/>
-                      <span className={`font-semibold text-xs sm:text-sm ${company.textColor}`}>{company.name}</span>
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 ${company.bgColor} rounded-lg flex items-center justify-center`}>
+                        <span className={`font-bold text-sm sm:text-base ${company.textColor}`}>
+                          {company.logo}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-slate-800 text-xs sm:text-sm block">{company.name}</span>
+                        <span className="text-xs text-slate-500">Software Engineer</span>
+                      </div>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Star className="w-3 h-3 text-yellow-400 fill-current" />
@@ -118,6 +126,15 @@ const ConnectionsVisual = () => (
                 </motion.div>
             ))}
         </div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2 }}
+          className="mt-6 flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg"
+        >
+          <Users className="w-4 h-4 text-green-600" />
+          <span className="text-xs sm:text-sm text-green-700 font-medium">3 Perfect Matches Found!</span>
+        </motion.div>
     </div>
 );
 
