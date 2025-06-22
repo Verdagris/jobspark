@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from "react";
 
 export interface UseAutoInterviewReturn {
   isWaitingForResponse: boolean;
@@ -9,6 +9,7 @@ export interface UseAutoInterviewReturn {
   stopWaitingForResponse: () => void;
   resetSilenceDetection: () => void;
   onSilenceDetected: (callback: () => void) => void;
+  detectSilence: (transcript: string, isListening: boolean) => void;
 }
 
 export const useAutoInterview = (
@@ -17,7 +18,7 @@ export const useAutoInterview = (
 ): UseAutoInterviewReturn => {
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [silenceDetected, setSilenceDetected] = useState(false);
-  
+
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const silenceCallbackRef = useRef<(() => void) | null>(null);
   const lastTranscriptLengthRef = useRef(0);
@@ -49,27 +50,35 @@ export const useAutoInterview = (
     silenceCallbackRef.current = callback;
   }, []);
 
-  const detectSilence = useCallback((transcript: string, isListening: boolean) => {
-    if (!isWaitingForResponse || !isListening) return;
+  const detectSilence = useCallback(
+    (transcript: string, isListening: boolean) => {
+      if (!isWaitingForResponse || !isListening) return;
 
-    const currentLength = transcript.trim().length;
-    
-    // If transcript is growing, reset silence timer
-    if (currentLength > lastTranscriptLengthRef.current) {
-      lastTranscriptLengthRef.current = currentLength;
-      resetSilenceDetection();
-      
-      // Start new silence timer
-      silenceTimerRef.current = setTimeout(() => {
-        if (currentLength >= minResponseLength) {
-          setSilenceDetected(true);
-          if (silenceCallbackRef.current) {
-            silenceCallbackRef.current();
+      const currentLength = transcript.trim().length;
+
+      // If transcript is growing, reset silence timer
+      if (currentLength > lastTranscriptLengthRef.current) {
+        lastTranscriptLengthRef.current = currentLength;
+        resetSilenceDetection();
+
+        // Start new silence timer
+        silenceTimerRef.current = setTimeout(() => {
+          if (currentLength >= minResponseLength) {
+            setSilenceDetected(true);
+            if (silenceCallbackRef.current) {
+              silenceCallbackRef.current();
+            }
           }
-        }
-      }, silenceThreshold);
-    }
-  }, [isWaitingForResponse, silenceThreshold, minResponseLength, resetSilenceDetection]);
+        }, silenceThreshold);
+      }
+    },
+    [
+      isWaitingForResponse,
+      silenceThreshold,
+      minResponseLength,
+      resetSilenceDetection,
+    ]
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -88,5 +97,7 @@ export const useAutoInterview = (
     resetSilenceDetection,
     onSilenceDetected,
     detectSilence,
-  } as UseAutoInterviewReturn & { detectSilence: (transcript: string, isListening: boolean) => void };
+  } as UseAutoInterviewReturn & {
+    detectSilence: (transcript: string, isListening: boolean) => void;
+  };
 };
