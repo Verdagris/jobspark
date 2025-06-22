@@ -18,7 +18,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Configure site URL for production
 const siteUrl = process.env.NODE_ENV === 'production' 
-  ? 'https://job-spark.netlify.app' 
+  ? 'https://jobspark.co.za' 
   : 'http://localhost:3000';
 
 // Update auth configuration for production
