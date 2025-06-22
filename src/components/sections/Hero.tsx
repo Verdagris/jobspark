@@ -97,7 +97,7 @@ const FlipButton = ({
   );
 };
 
-// --- Enhanced Animation Scenes ---
+// --- Simplified Animation Scenes ---
 const animationScenes = [
   {
     key: "cv",
@@ -110,25 +110,25 @@ const animationScenes = [
           className="h-3 w-full bg-gradient-to-r from-sky-200 to-sky-400 rounded-full"
           initial={{ width: 0 }}
           animate={{ width: "100%" }}
-          transition={{ duration: 2, ease: "easeOut" }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
         />
         <motion.div 
           className="h-3 w-4/5 bg-gradient-to-r from-blue-200 to-blue-400 rounded-full"
           initial={{ width: 0 }}
           animate={{ width: "80%" }}
-          transition={{ duration: 2, delay: 0.3, ease: "easeOut" }}
+          transition={{ duration: 1.5, delay: 0.2, ease: "easeOut" }}
         />
         <motion.div 
           className="h-3 w-full bg-gradient-to-r from-indigo-200 to-indigo-400 rounded-full"
           initial={{ width: 0 }}
           animate={{ width: "100%" }}
-          transition={{ duration: 2, delay: 0.6, ease: "easeOut" }}
+          transition={{ duration: 1.5, delay: 0.4, ease: "easeOut" }}
         />
         <motion.div 
           className="h-3 w-3/4 bg-gradient-to-r from-purple-200 to-purple-400 rounded-full"
           initial={{ width: 0 }}
           animate={{ width: "75%" }}
-          transition={{ duration: 2, delay: 0.9, ease: "easeOut" }}
+          transition={{ duration: 1.5, delay: 0.6, ease: "easeOut" }}
         />
       </div>
     ),
@@ -143,7 +143,7 @@ const animationScenes = [
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, type: "spring" }}
+          transition={{ delay: 0.3, type: "spring" }}
           className="bg-gradient-to-r from-indigo-100 to-purple-100 p-4 rounded-lg border border-indigo-200"
         >
           <p className="text-sm font-medium text-indigo-700 mb-2">
@@ -157,7 +157,7 @@ const animationScenes = [
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 0.5 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
           className="bg-green-50 p-3 rounded-lg border border-green-200"
         >
           <div className="flex items-center space-x-2">
@@ -180,7 +180,7 @@ const animationScenes = [
             key={i}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.3, duration: 0.5 }}
+            transition={{ delay: i * 0.2, duration: 0.5 }}
             className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200"
           >
             <div className="flex items-center space-x-3">
@@ -209,7 +209,7 @@ export const Hero = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setSceneIndex((prevIndex) => (prevIndex + 1) % animationScenes.length);
-    }, 5000);
+    }, 4000); // Slightly faster transitions
     return () => clearInterval(interval);
   }, []);
 
@@ -218,15 +218,14 @@ export const Hero = () => {
 
   return (
     <section className="relative pt-20 sm:pt-32 pb-16 sm:pb-24 lg:pt-48 lg:pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden bg-white">
-      {/* --- Enhanced Background --- */}
+      {/* --- Simplified Background --- */}
       <div className="absolute inset-0 z-0">
         {/* The Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px] sm:bg-[size:36px_36px] opacity-30 sm:opacity-50" />
-        {/* The Aurora */}
-        <div className="absolute inset-0 opacity-40 sm:opacity-60">
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,_#bae6fd_0%,_transparent_40%)] animate-pulse-slow" />
-          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_#c7d2fe_0%,_transparent_45%)] animate-pulse-slow animation-delay-2000" />
-          <div className="absolute bottom-0 left-1/4 w-full h-full bg-[radial-gradient(circle_at_bottom,_#e0e7ff_0%,_transparent_50%)] animate-pulse-slow animation-delay-4000" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px] sm:bg-[size:36px_36px] opacity-20 sm:opacity-30" />
+        {/* Simplified Aurora */}
+        <div className="absolute inset-0 opacity-30 sm:opacity-40">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,_#bae6fd_0%,_transparent_40%)]" />
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_#c7d2fe_0%,_transparent_45%)]" />
         </div>
       </div>
 
@@ -234,28 +233,48 @@ export const Hero = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", staggerChildren: 0.2 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center lg:text-left order-2 lg:order-1"
         >
-          <motion.div className="inline-flex items-center bg-gradient-to-r from-sky-100 to-blue-100 text-sky-800 font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm mb-4 sm:mb-6 border border-sky-200 shadow-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="inline-flex items-center bg-gradient-to-r from-sky-100 to-blue-100 text-sky-800 font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm mb-4 sm:mb-6 border border-sky-200 shadow-sm"
+          >
             <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-yellow-400 fill-current" />
             <span className="hidden sm:inline">Voted #1 Platform for Career Growth</span>
             <span className="sm:hidden">#1 Career Platform</span>
           </motion.div>
 
-          <motion.h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tighter text-slate-900 mb-4 sm:mb-6 leading-tight [text-shadow:1px_1px_2px_rgba(255,255,255,0.5)]">
+          <motion.h1 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tighter text-slate-900 mb-4 sm:mb-6 leading-tight"
+          >
             Your Intelligent <br className="hidden sm:block" />
             <span className="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
               Career Co-Pilot
             </span>
           </motion.h1>
 
-          <motion.p className="text-base sm:text-lg lg:text-xl text-slate-600 mb-6 sm:mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="text-base sm:text-lg lg:text-xl text-slate-600 mb-6 sm:mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+          >
             Accelerate your job search with intelligent tools for CV building,
             interview practice, and direct connections to top employers.
           </motion.p>
 
-          <motion.div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start"
+          >
             <SpotlightButton href="/auth">
               <span className="flex items-center">
                 Start Your Journey 
@@ -265,12 +284,12 @@ export const Hero = () => {
             <FlipButton href="#how-it-works">How it Works</FlipButton>
           </motion.div>
 
-          {/* Mobile-specific trust indicators */}
+          {/* Trust indicators */}
           <motion.div 
             className="flex flex-wrap justify-center lg:justify-start gap-4 sm:gap-6 mt-6 sm:mt-8 text-xs sm:text-sm text-slate-500"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
           >
             <div className="flex items-center space-x-1">
               <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
@@ -287,12 +306,15 @@ export const Hero = () => {
           </motion.div>
         </motion.div>
 
-        {/* --- Enhanced Animated Viewport --- */}
+        {/* --- Simplified Animated Viewport --- */}
         <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3, duration: 0.8 }}
           whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
           className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg mx-auto aspect-[4/3] order-1 lg:order-2"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-sky-200 via-blue-200 to-indigo-200 rounded-2xl sm:rounded-3xl opacity-30 sm:opacity-40 blur-xl sm:blur-2xl animate-pulse-slow"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-200 via-blue-200 to-indigo-200 rounded-2xl sm:rounded-3xl opacity-20 sm:opacity-30 blur-xl sm:blur-2xl"></div>
           <div className="relative w-full h-full bg-white/70 sm:bg-white/60 backdrop-blur-xl border-2 border-white/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl sm:shadow-2xl shadow-slate-400/20 flex flex-col items-center justify-center text-center">
             <AnimatePresence mode="wait">
               <motion.div
@@ -300,14 +322,14 @@ export const Hero = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
                 className="w-full flex flex-col items-center justify-center space-y-3 sm:space-y-4"
               >
                 <motion.div
                   className="p-2 sm:p-3 bg-white rounded-full shadow-lg"
-                  animate={{ scale: [1, 1.1, 1] }}
+                  animate={{ scale: [1, 1.05, 1] }}
                   transition={{
-                    duration: 1.5,
+                    duration: 2,
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}

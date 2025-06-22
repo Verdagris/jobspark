@@ -8,17 +8,17 @@ const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.2 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
   },
 };
 
 const itemVariants: Variants = {
-  hidden: { y: 30, opacity: 0, scale: 0.95 },
+  hidden: { y: 20, opacity: 0, scale: 0.95 },
   visible: {
     y: 0,
     opacity: 1,
     scale: 1,
-    transition: { type: "spring", stiffness: 100, damping: 12 },
+    transition: { type: "spring", stiffness: 120, damping: 15 },
   },
 };
 
@@ -62,17 +62,19 @@ export const Stats = () => {
               variants={itemVariants}
               className="relative group"
             >
-              {/* Background Glow on Hover */}
-              <div className="absolute -inset-2 bg-gradient-to-br from-sky-200 to-indigo-200 rounded-2xl opacity-0 group-hover:opacity-70 transition-opacity duration-300 blur-xl"></div>
+              {/* Simplified background glow */}
+              <div className="absolute -inset-1 bg-gradient-to-br from-sky-100 to-indigo-100 rounded-2xl opacity-0 group-hover:opacity-50 transition-opacity duration-300 blur-sm"></div>
               
               <motion.div 
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
                 className="relative text-center bg-white/70 backdrop-blur-md border border-slate-200/80 p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl h-full flex flex-col items-center justify-center shadow-lg"
               >
                 <motion.div
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
                   className={`p-2 sm:p-3 lg:p-4 bg-gradient-to-r ${stat.color} rounded-full mb-3 sm:mb-4`}
                 >
                   <stat.icon className="w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-white" />

@@ -7,52 +7,49 @@ const partners = [
   {
     name: "Bolt.new",
     logo: "/bolt-logo.svg",
-    description: "AI-powered development platform"
+    url: "https://bolt.new"
   },
   {
     name: "ElevenLabs",
     logo: "/elevenlabs-logo.svg", 
-    description: "Advanced AI voice technology"
+    url: "https://elevenlabs.io"
   },
   {
     name: "Supabase",
     logo: "https://supabase.com/brand-assets/supabase-logo-icon.svg",
-    description: "Open source Firebase alternative"
+    url: "https://supabase.com"
   },
   {
     name: "OpenAI",
     logo: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg",
-    description: "Leading AI technology"
+    url: "https://openai.com"
   },
   {
-    name: "Vercel",
-    logo: "https://assets.vercel.com/image/upload/v1662130559/nextjs/Icon_light_background.png",
-    description: "Frontend cloud platform"
+    name: "Netlify",
+    logo: "https://www.netlify.com/v3/img/components/logomark.png",
+    url: "https://netlify.com"
   },
   {
     name: "Tailwind CSS",
     logo: "https://tailwindcss.com/_next/static/media/tailwindcss-mark.3c5441fc7a190fb1800d4a5c7f07ba4b1345a9c8.svg",
-    description: "Utility-first CSS framework"
+    url: "https://tailwindcss.com"
   }
 ];
 
 export const TechPartners = () => {
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-white border-b border-slate-100">
+    <section className="py-8 sm:py-12 bg-white border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-8 sm:mb-12"
+          className="text-center mb-8"
         >
-          <p className="text-sm sm:text-base text-slate-500 font-medium mb-4">
-            Powered by industry-leading technology
+          <p className="text-xs sm:text-sm text-slate-400 font-medium uppercase tracking-wider">
+            Powered by
           </p>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900">
-            Built with the Best
-          </h2>
         </motion.div>
 
         <motion.div
@@ -60,47 +57,32 @@ export const TechPartners = () => {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 sm:gap-8 lg:gap-12 items-center"
+          className="flex flex-wrap justify-center items-center gap-8 sm:gap-12 lg:gap-16"
         >
           {partners.map((partner, index) => (
-            <motion.div
+            <motion.a
               key={partner.name}
+              href={partner.url}
+              target="_blank"
+              rel="noopener noreferrer"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ scale: 1.05 }}
-              className="group flex flex-col items-center text-center p-4 rounded-xl hover:bg-slate-50 transition-all duration-300"
+              whileHover={{ scale: 1.1, y: -2 }}
+              className="group flex items-center justify-center transition-all duration-300"
             >
-              <div className="relative w-12 h-12 sm:w-16 sm:h-16 mb-3 flex items-center justify-center">
+              <div className="relative w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 flex items-center justify-center">
                 <Image
                   src={partner.logo}
                   alt={`${partner.name} logo`}
-                  width={64}
-                  height={64}
-                  className="max-w-full max-h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-300"
+                  width={48}
+                  height={48}
+                  className="max-w-full max-h-full object-contain filter grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300"
                 />
               </div>
-              <h3 className="text-sm sm:text-base font-semibold text-slate-800 mb-1">
-                {partner.name}
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 leading-tight">
-                {partner.description}
-              </p>
-            </motion.div>
+            </motion.a>
           ))}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="text-center mt-8 sm:mt-12"
-        >
-          <p className="text-xs sm:text-sm text-slate-400">
-            Trusted by thousands of professionals • Built with enterprise-grade security
-          </p>
         </motion.div>
       </div>
     </section>
