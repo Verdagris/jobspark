@@ -30,7 +30,8 @@ import {
   Zap,
   CheckCircle,
   AlertCircle,
-  Star
+  Star,
+  Activity
 } from "lucide-react";
 import Link from "next/link";
 
