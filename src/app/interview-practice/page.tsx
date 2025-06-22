@@ -27,6 +27,11 @@ import {
   Lightbulb,
   History,
   BarChart3,
+  Zap,
+  Brain,
+  MessageCircle,
+  Timer,
+  TrendingDown,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,8 +57,9 @@ interface QuestionResponse {
     strengths: string[];
     improvements: string[];
     feedback: string;
-    metrics?: any;
-    timeAnalysis?: any;
+    speechMetrics?: any;
+    speechCoaching?: string[];
+    detailedFeedback?: any;
   };
 }
 
@@ -368,8 +374,9 @@ const InterviewPracticePage = () => {
           strengths: analysis.strengths,
           improvements: analysis.improvements,
           feedback: analysis.feedback,
-          metrics: analysis.metrics,
-          timeAnalysis: analysis.timeAnalysis
+          speechMetrics: analysis.speechMetrics,
+          speechCoaching: analysis.speechCoaching,
+          detailedFeedback: analysis.detailedFeedback
         }
       };
       
@@ -649,7 +656,7 @@ const InterviewPracticePage = () => {
                           <li>Questions will be read aloud using AI voice</li>
                           <li>Speak naturally - we'll detect when you're done</li>
                           <li>No need to click buttons during the interview</li>
-                          <li>Get real-time feedback on your responses</li>
+                          <li>Get detailed feedback on speaking quality</li>
                         </ul>
                         <label className="flex items-center space-x-2 mt-3">
                           <input
@@ -870,6 +877,82 @@ const InterviewPracticePage = () => {
                     <div className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-100 text-purple-800 rounded-full">
                       <Award className="w-5 h-5" />
                       <span className="font-medium">{finalAnalysis.readinessLevel}</span>
+                    </div>
+                  </div>
+
+                  {/* Speech Coaching Summary */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-8">
+                    <div className="flex items-center space-x-3 mb-6">
+                      <Brain className="w-6 h-6 text-blue-500" />
+                      <h3 className="text-xl font-bold text-slate-900">Speech Coaching Summary</h3>
+                    </div>
+                    
+                    {responses.length > 0 && responses[0].analysis?.speechMetrics && (
+                      <div className="grid md:grid-cols-3 gap-6 mb-6">
+                        <div className="text-center p-4 bg-blue-50 rounded-lg">
+                          <Timer className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                          <div className="text-2xl font-bold text-blue-600">
+                            {Math.round(responses.reduce((sum, r) => sum + (r.analysis?.speechMetrics?.pace || 0), 0) / responses.length)}
+                          </div>
+                          <div className="text-sm text-blue-800">Words per minute</div>
+                        </div>
+                        
+                        <div className="text-center p-4 bg-orange-50 rounded-lg">
+                          <MessageCircle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                          <div className="text-2xl font-bold text-orange-600">
+                            {Math.round(responses.reduce((sum, r) => sum + (r.analysis?.speechMetrics?.fillerPercentage || 0), 0) / responses.length * 10) / 10}%
+                          </div>
+                          <div className="text-sm text-orange-800">Filler words</div>
+                        </div>
+                        
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <Zap className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                          <div className="text-2xl font-bold text-green-600">
+                            {Math.round(responses.reduce((sum, r) => sum + (r.analysis?.speechMetrics?.overallSpeechScore || 0), 0) / responses.length)}%
+                          </div>
+                          <div className="text-sm text-green-800">Speech quality</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Individual Question Speech Coaching */}
+                    <div className="space-y-4">
+                      {responses.map((response, index) => (
+                        response.analysis?.speechCoaching && (
+                          <div key={index} className="border border-slate-200 rounded-lg p-4">
+                            <h4 className="font-semibold text-slate-900 mb-3">
+                              Question {index + 1}: Speech Analysis
+                            </h4>
+                            <div className="space-y-2">
+                              {response.analysis.speechCoaching.map((coaching: string, coachIndex: number) => (
+                                <div key={coachIndex} className="text-sm">
+                                  {coaching.startsWith('✅') ? (
+                                    <div className="flex items-start space-x-2 text-green-700">
+                                      <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                      <span>{coaching.replace('✅ ', '')}</span>
+                                    </div>
+                                  ) : coaching.startsWith('🎯') ? (
+                                    <div className="flex items-start space-x-2 text-red-700">
+                                      <Target className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                      <span>{coaching.replace('🎯 ', '')}</span>
+                                    </div>
+                                  ) : coaching.startsWith('⚠️') ? (
+                                    <div className="flex items-start space-x-2 text-orange-700">
+                                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                      <span>{coaching.replace('⚠️ ', '')}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-start space-x-2 text-slate-700">
+                                      <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                      <span>{coaching}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      ))}
                     </div>
                   </div>
 
