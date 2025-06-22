@@ -47,4 +47,3 @@ CREATE INDEX IF NOT EXISTS idx_interview_sessions_user_id ON interview_sessions(
 CREATE INDEX IF NOT EXISTS idx_interview_sessions_created_at ON interview_sessions(created_at);
 CREATE INDEX IF NOT EXISTS idx_interview_sessions_role ON interview_sessions(role);
 CREATE INDEX IF NOT EXISTS idx_interview_sessions_score ON interview_sessions(overall_score);
-EOF
