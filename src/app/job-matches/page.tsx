@@ -7,7 +7,6 @@ import {
   Briefcase, 
   MapPin, 
   Clock, 
-  DollarSign, 
   Star, 
   Heart,
   ExternalLink,
@@ -76,12 +75,6 @@ const calculateJobRelevance = (job: any, userSkills: string[], userExperiences: 
   }
   
   return Math.min(100, relevanceScore);
-};
-
-// Helper function to convert GBP to ZAR (approximate)
-const convertToZAR = (gbpAmount: number) => {
-  const exchangeRate = 23.5; // Approximate GBP to ZAR rate
-  return Math.round(gbpAmount * exchangeRate);
 };
 
 // Helper functions for filtering and sorting
@@ -199,7 +192,7 @@ const JobMatchesPage = () => {
             description: "Join our engineering team to build scalable e-commerce solutions. Work with React, Node.js, Python, and AWS. Experience with microservices and agile development required.",
             requirements: ["5+ years experience", "React/Node.js", "Python", "AWS", "Microservices"],
             logo: "https://ui-avatars.com/api/?name=Takealot&background=0ea5e9&color=fff&size=64",
-            url: "#",
+            url: "https://takealot.com/careers",
             created: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
             benefits: ["Medical Aid", "Pension Fund", "Flexible Hours", "Remote Work"]
           },
@@ -214,7 +207,7 @@ const JobMatchesPage = () => {
             description: "Lead product strategy for our digital health platform. Drive innovation in fintech and healthtech. Experience with agile methodologies and data-driven decision making essential.",
             requirements: ["3+ years PM experience", "Agile methodology", "Data analysis", "Fintech/Healthtech"],
             logo: "https://ui-avatars.com/api/?name=Discovery&background=22c55e&color=fff&size=64",
-            url: "#",
+            url: "https://discovery.co.za/careers",
             created: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
             benefits: ["Medical Aid", "Life Insurance", "Bonus Scheme", "Learning Budget"]
           },
@@ -229,7 +222,7 @@ const JobMatchesPage = () => {
             description: "Create exceptional user experiences for our global digital products. Work with design systems, conduct user research, and collaborate with cross-functional teams.",
             requirements: ["Portfolio required", "Figma/Sketch", "User research", "Design systems"],
             logo: "https://ui-avatars.com/api/?name=Naspers&background=8b5cf6&color=fff&size=64",
-            url: "#",
+            url: "https://naspers.com/careers",
             created: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
             benefits: ["Medical Aid", "Pension Fund", "Creative Environment", "International Exposure"]
           },
@@ -244,7 +237,7 @@ const JobMatchesPage = () => {
             description: "Analyze complex financial datasets to drive business insights. Build predictive models and work with big data technologies. Strong Python and SQL skills required.",
             requirements: ["Python/R", "Machine Learning", "SQL", "Statistics", "Banking experience"],
             logo: "https://ui-avatars.com/api/?name=Standard+Bank&background=dc2626&color=fff&size=64",
-            url: "#",
+            url: "https://standardbank.co.za/careers",
             created: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
             benefits: ["Medical Aid", "Pension Fund", "Performance Bonus", "Study Assistance"]
           },
@@ -259,7 +252,7 @@ const JobMatchesPage = () => {
             description: "Manage cloud infrastructure and CI/CD pipelines. Work with Docker, Kubernetes, and Azure. Help scale our digital banking platform.",
             requirements: ["Docker/Kubernetes", "Azure/AWS", "CI/CD", "Linux", "Monitoring"],
             logo: "https://ui-avatars.com/api/?name=Capitec&background=f59e0b&color=fff&size=64",
-            url: "#",
+            url: "https://capitecbank.co.za/careers",
             created: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
             benefits: ["Medical Aid", "Pension Fund", "Flexible Hours", "Tech Allowance"]
           },
@@ -274,7 +267,7 @@ const JobMatchesPage = () => {
             description: "Build responsive web applications for our retail platform. Work with React, TypeScript, and modern frontend tools. Focus on performance and user experience.",
             requirements: ["React/TypeScript", "CSS/SASS", "Responsive design", "Testing", "Git"],
             logo: "https://ui-avatars.com/api/?name=Woolworths&background=10b981&color=fff&size=64",
-            url: "#",
+            url: "https://woolworths.co.za/careers",
             created: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
             benefits: ["Medical Aid", "Staff Discount", "Pension Fund", "Wellness Programs"]
           },
@@ -289,7 +282,7 @@ const JobMatchesPage = () => {
             description: "Analyze business processes and requirements for digital transformation projects. Work with stakeholders to define solutions and improve operational efficiency.",
             requirements: ["Business analysis", "Process mapping", "SQL", "Stakeholder management", "Insurance"],
             logo: "https://ui-avatars.com/api/?name=Old+Mutual&background=6366f1&color=fff&size=64",
-            url: "#",
+            url: "https://oldmutual.co.za/careers",
             created: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
             benefits: ["Medical Aid", "Pension Fund", "Life Insurance", "Professional Development"]
           },
@@ -304,7 +297,7 @@ const JobMatchesPage = () => {
             description: "Develop mobile applications for our telecommunications services. Work with React Native, Flutter, or native iOS/Android development.",
             requirements: ["React Native/Flutter", "iOS/Android", "API integration", "Mobile UI/UX", "Telecom"],
             logo: "https://ui-avatars.com/api/?name=MTN&background=eab308&color=fff&size=64",
-            url: "#",
+            url: "https://mtn.co.za/careers",
             created: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
             benefits: ["Medical Aid", "Pension Fund", "Mobile Allowance", "Training Programs"]
           }
@@ -364,6 +357,16 @@ const JobMatchesPage = () => {
     setSearchTerm("");
   };
 
+  const handleApplyNow = (job: any) => {
+    // Open the company's career page in a new tab
+    window.open(job.url, '_blank');
+  };
+
+  const handleLearnMore = (job: any) => {
+    // For now, just scroll to the job details or show more info
+    alert(`Learn more about ${job.title} at ${job.company}\n\nThis would typically show more detailed job information, company culture, interview process, etc.`);
+  };
+
   const filteredJobs = useMemo(() => {
     let currentJobs = applyMainFilter(jobs, selectedFilter, savedJobs);
     currentJobs = applySearchFilter(currentJobs, searchTerm);
@@ -391,6 +394,11 @@ const JobMatchesPage = () => {
                 <Link href="/dashboard" className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                   <ArrowLeft className="w-5 h-5 text-slate-600" />
                 </Link>
+                <div className="flex items-center space-x-3">
+                  <Sparkles className="w-8 h-8 text-sky-500" />
+                  <span className="text-2xl font-bold text-slate-900">JobSpark</span>
+                </div>
+                <div className="h-8 w-px bg-slate-200 mx-4" />
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg">
                     <Briefcase className="w-6 h-6 text-white" />
@@ -441,7 +449,7 @@ const JobMatchesPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Enhanced Header */}
+      {/* Enhanced Header with JobSpark Branding */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -449,6 +457,11 @@ const JobMatchesPage = () => {
               <Link href="/dashboard" className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                 <ArrowLeft className="w-5 h-5 text-slate-600" />
               </Link>
+              <div className="flex items-center space-x-3">
+                <Sparkles className="w-8 h-8 text-sky-500" />
+                <span className="text-2xl font-bold text-slate-900">JobSpark</span>
+              </div>
+              <div className="h-8 w-px bg-slate-200 mx-4" />
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg">
                   <Briefcase className="w-6 h-6 text-white" />
@@ -685,7 +698,6 @@ const JobMatchesPage = () => {
                         </div>
                         <div className="flex items-center space-x-3">
                           <div className="flex items-center space-x-1">
-                            <DollarSign className="w-4 h-4 text-green-500" />
                             <span className="font-bold text-slate-900">{job.salary}</span>
                           </div>
                           <span className="text-slate-400">•</span>
@@ -779,10 +791,16 @@ const JobMatchesPage = () => {
                       )}
                     </div>
                     <div className="flex space-x-3">
-                      <button className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
+                      <button 
+                        onClick={() => handleLearnMore(job)}
+                        className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+                      >
                         Learn More
                       </button>
-                      <button className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl">
+                      <button 
+                        onClick={() => handleApplyNow(job)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl"
+                      >
                         <span>Apply Now</span>
                         <ExternalLink className="w-4 h-4" />
                       </button>
