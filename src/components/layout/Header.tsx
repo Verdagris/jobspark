@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, BarChart3, Users, Info, ArrowRight } from "lucide-react";
+import { Sparkles, BarChart3, Users, Info, ArrowRight, Menu, X } from "lucide-react";
 import ShimmerButton from "../ui/ShimmerButton";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import Link from "next/link";
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [hoveredLink, setHoveredLink] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,6 +35,7 @@ export const Header = () => {
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
     }
+    setMobileMenuOpen(false);
   };
 
   const headerVariants = {
@@ -70,12 +72,12 @@ export const Header = () => {
     >
       <motion.div
         variants={contentVariants as any}
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16 sm:h-20"
       >
         {/* Left Side: Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <Sparkles className="w-8 h-8 text-sky-500 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
-          <span className="text-2xl font-bold text-slate-900 tracking-tight">
+          <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-sky-500 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
+          <span className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             JobSpark
           </span>
         </Link>
@@ -90,7 +92,7 @@ export const Header = () => {
               key={link.name}
               href={link.href}
               onClick={(e) => handleNavClick(e, link.href)}
-              className="relative font-medium text-slate-600 hover:text-slate-900 transition-colors px-4 py-2 rounded-full group"
+              className="relative font-medium text-slate-600 hover:text-slate-900 transition-colors px-3 lg:px-4 py-2 rounded-full group text-sm lg:text-base"
               onMouseEnter={() => setHoveredLink(link.name)}
             >
               <span className="relative z-10 flex items-center">
@@ -113,25 +115,35 @@ export const Header = () => {
           ))}
         </div>
 
-        {/* Right Side: Actions & Spinning Logo */}
-        <div className="flex items-center space-x-4">
-          <Link href="/auth">
+        {/* Right Side: Actions & Mobile Menu */}
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <Link href="/auth" className="hidden sm:block">
             <motion.button
               whileHover={{ scale: 1.05, color: "#000" }}
               whileTap={{ scale: 0.95 }}
-              className="font-semibold px-4 py-2 text-slate-600 transition-colors hidden sm:block"
+              className="font-semibold px-3 lg:px-4 py-2 text-slate-600 transition-colors text-sm lg:text-base"
             >
               Login
             </motion.button>
           </Link>
-          <Link href="/auth">
-            <ShimmerButton className="!px-5 !py-2.5">
+          <Link href="/auth" className="hidden sm:block">
+            <ShimmerButton className="!px-4 lg:!px-5 !py-2 lg:!py-2.5 !text-sm lg:!text-base">
               <span className="flex items-center">
-                Get Started <ArrowRight className="ml-2 w-4 h-4" />
+                Get Started <ArrowRight className="ml-2 w-3 h-3 lg:w-4 lg:h-4" />
               </span>
             </ShimmerButton>
           </Link>
-          <div className="animate-spin-slow ml-2">
+          
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+          
+          {/* Spinning Logo */}
+          <div className="animate-spin-slow ml-2 hidden lg:block">
             <Image
               src="/bolt.svg"
               alt="Decorative Bolt"
@@ -142,11 +154,47 @@ export const Header = () => {
                   window.open("https://bolt.new", "_blank");
                 }
               }}
-              className="opacity-80"
+              className="opacity-80 cursor-pointer"
             />
           </div>
         </div>
       </motion.div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200/60"
+        >
+          <div className="px-4 py-6 space-y-4">
+            {navLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                onClick={(e) => handleNavClick(e, link.href)}
+                className="flex items-center space-x-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <link.icon className="w-5 h-5 text-slate-400" />
+                <span className="font-medium">{link.name}</span>
+              </a>
+            ))}
+            <div className="pt-4 border-t border-slate-200 space-y-3">
+              <Link href="/auth" className="block">
+                <button className="w-full text-left px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors font-medium">
+                  Login
+                </button>
+              </Link>
+              <Link href="/auth" className="block">
+                <button className="w-full bg-sky-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-sky-600 transition-colors">
+                  Get Started
+                </button>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </motion.nav>
   );
 };
