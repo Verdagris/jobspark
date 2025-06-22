@@ -1,6 +1,7 @@
 // Import all the components we've built
 import { Header } from "@/components/layout/Header";
 import { Hero } from "@/components/sections/Hero";
+import { TechPartners } from "@/components/sections/TechPartners";
 import { Stats } from "@/components/sections/Stats";
 import { Features } from "@/components/sections/Features";
 import { HowItWorks } from "@/components/sections/HowItWorks";
@@ -14,6 +15,7 @@ export default function HomePage() {
     <main className="bg-white text-slate-800 antialiased">
       <Header />
       <Hero />
+      <TechPartners />
       <Stats />
       <Features />
       <HowItWorks />

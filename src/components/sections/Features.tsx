@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
-import { FileText, MessageSquare, Briefcase, Target, Mic, CheckCircle, Star, TrendingUp } from "lucide-react";
+import { FileText, MessageSquare, Briefcase, Target, Mic, CheckCircle, Star, TrendingUp, Building2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 // --- Enhanced Visual Components ---
@@ -91,10 +91,14 @@ const ConnectionsVisual = () => (
           <p className="font-bold text-slate-800 text-sm sm:text-lg">Matching Companies...</p>
         </div>
         <div className="relative w-full max-w-[200px] h-20 sm:h-24">
-            {[...Array(3)].map((_, i) => (
+            {[
+              { name: "Takealot", color: "bg-blue-100 border-blue-200", textColor: "text-blue-800", score: 95 },
+              { name: "Discovery", color: "bg-green-100 border-green-200", textColor: "text-green-800", score: 92 },
+              { name: "Capitec", color: "bg-purple-100 border-purple-200", textColor: "text-purple-800", score: 89 }
+            ].map((company, i) => (
                 <motion.div
                     key={i}
-                    className="absolute w-full h-full p-3 sm:p-4 bg-green-100 border-2 border-green-200 rounded-xl flex items-center justify-between"
+                    className={`absolute w-full h-full p-3 sm:p-4 ${company.color} border-2 rounded-xl flex items-center justify-between`}
                     initial={{ y: 0, rotate: 0, scale: 1 }}
                     animate={{ 
                         y: -i * 12,
@@ -104,12 +108,12 @@ const ConnectionsVisual = () => (
                     transition={{ type: "spring", stiffness: 100, damping: 10, delay: i * 0.2 }}
                 >
                     <div className="flex items-center space-x-2">
-                      <Briefcase className="w-4 h-4 text-green-600"/>
-                      <span className="font-semibold text-green-800 text-xs sm:text-sm">Company {i + 1}</span>
+                      <Building2 className="w-4 h-4 text-current"/>
+                      <span className={`font-semibold text-xs sm:text-sm ${company.textColor}`}>{company.name}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                      <span className="text-xs font-bold text-green-600">{95 - i * 5}%</span>
+                      <span className="text-xs font-bold text-green-600">{company.score}%</span>
                     </div>
                 </motion.div>
             ))}

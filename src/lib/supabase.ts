@@ -16,6 +16,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
+// Configure site URL for production
+const siteUrl = process.env.NODE_ENV === 'production' 
+  ? 'https://job-spark.netlify.app' 
+  : 'http://localhost:3000';
+
+// Update auth configuration for production
+if (typeof window !== 'undefined') {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      // Handle successful sign in
+      console.log('User signed in successfully');
+    }
+  });
+}
+
 export type AuthError = {
   message: string
 }
@@ -29,3 +44,8 @@ export type User = {
     provider?: string
   }
 }
+
+// Helper function to get the correct redirect URL
+export const getRedirectUrl = (path: string = '/auth/callback') => {
+  return `${siteUrl}${path}`;
+};
