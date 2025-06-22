@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, getRedirectUrl } from '@/lib/supabase';
 import type { User, AuthError } from '@/lib/supabase';
 
 export const useAuth = () => {
@@ -55,6 +55,7 @@ export const useAuth = () => {
           data: {
             full_name: fullName,
           },
+          emailRedirectTo: getRedirectUrl(),
         },
       });
 
@@ -97,7 +98,7 @@ export const useAuth = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: getRedirectUrl(),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
