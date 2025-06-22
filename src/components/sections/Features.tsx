@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
-import { FileText, MessageSquare, Briefcase, Target, Mic, CheckCircle, Star, TrendingUp, Building2, Users } from "lucide-react";
+import { FileText, MessageSquare, Briefcase, Target, Mic, CheckCircle, Star, TrendingUp, Building2, Users, MapPin } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 // --- Enhanced Visual Components ---
@@ -86,51 +86,92 @@ const InterviewVisual = () => (
 
 const ConnectionsVisual = () => (
     <div className="w-full h-full p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center bg-white shadow-lg rounded-xl sm:rounded-2xl">
-        <div className="flex items-center space-x-2 mb-4">
+        <div className="flex items-center space-x-2 mb-6">
           <Briefcase className="w-5 h-5 text-green-600" />
-          <p className="font-bold text-slate-800 text-sm sm:text-lg">Matching Companies...</p>
+          <p className="font-bold text-slate-800 text-sm sm:text-lg">Finding Perfect Matches...</p>
         </div>
-        <div className="relative w-full max-w-[240px] h-32 sm:h-36">
+        
+        <div className="relative w-full max-w-[280px] space-y-3">
             {[
-              { name: "Takealot", logo: "T", bgColor: "bg-blue-500", textColor: "text-white", score: 95 },
-              { name: "Discovery", logo: "D", bgColor: "bg-green-500", textColor: "text-white", score: 92 },
-              { name: "Capitec", logo: "C", bgColor: "bg-purple-500", textColor: "text-white", score: 89 }
+              { 
+                name: "Takealot Group", 
+                role: "Senior Software Engineer",
+                location: "Cape Town",
+                logo: "T", 
+                bgColor: "bg-blue-500", 
+                textColor: "text-white", 
+                score: 95,
+                salary: "R65k - R95k"
+              },
+              { 
+                name: "Discovery Limited", 
+                role: "Product Manager",
+                location: "Johannesburg", 
+                logo: "D", 
+                bgColor: "bg-green-500", 
+                textColor: "text-white", 
+                score: 92,
+                salary: "R75k - R110k"
+              },
+              { 
+                name: "Standard Bank", 
+                role: "Data Scientist",
+                location: "Johannesburg",
+                logo: "S", 
+                bgColor: "bg-red-500", 
+                textColor: "text-white", 
+                score: 89,
+                salary: "R60k - R90k"
+              }
             ].map((company, i) => (
                 <motion.div
                     key={i}
-                    className="absolute w-full h-20 sm:h-24 p-3 sm:p-4 bg-white border-2 border-slate-200 rounded-xl flex items-center justify-between shadow-md"
-                    initial={{ y: 0, rotate: 0, scale: 1, opacity: 0 }}
-                    animate={{ 
-                        y: -i * 16,
-                        rotate: (i - 1) * 4,
-                        scale: 1 - i * 0.03,
-                        opacity: 1
-                    }}
-                    transition={{ type: "spring", stiffness: 100, damping: 10, delay: i * 0.2 }}
+                    className="w-full bg-white border border-slate-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.3, duration: 0.5 }}
                 >
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 ${company.bgColor} rounded-lg flex items-center justify-center`}>
-                        <span className={`font-bold text-sm sm:text-base ${company.textColor}`}>
-                          {company.logo}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-800 text-xs sm:text-sm block">{company.name}</span>
-                        <span className="text-xs text-slate-500">Software Engineer</span>
-                      </div>
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                            <div className={`w-10 h-10 ${company.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                                <span className={`font-bold text-sm ${company.textColor}`}>
+                                    {company.logo}
+                                </span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <h3 className="font-semibold text-slate-800 text-sm truncate">{company.name}</h3>
+                                <p className="text-xs text-slate-600 truncate">{company.role}</p>
+                                <div className="flex items-center space-x-1 mt-1">
+                                    <MapPin className="w-3 h-3 text-slate-400" />
+                                    <span className="text-xs text-slate-500">{company.location}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-1 bg-green-50 px-2 py-1 rounded-full">
+                            <Star className="w-3 h-3 text-green-600 fill-current" />
+                            <span className="text-xs font-bold text-green-600">{company.score}%</span>
+                        </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                      <span className="text-xs font-bold text-green-600">{company.score}%</span>
+                    
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-700">{company.salary}</span>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="text-xs bg-sky-500 text-white px-3 py-1 rounded-full hover:bg-sky-600 transition-colors"
+                        >
+                            Apply
+                        </motion.button>
                     </div>
                 </motion.div>
             ))}
         </div>
+        
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="mt-6 flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg"
+          className="mt-4 flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg"
         >
           <Users className="w-4 h-4 text-green-600" />
           <span className="text-xs sm:text-sm text-green-700 font-medium">3 Perfect Matches Found!</span>
