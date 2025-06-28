@@ -9,10 +9,12 @@ import Link from "next/link";
 
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [hoveredLink, setHoveredLink] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
@@ -65,7 +67,7 @@ export const Header = () => {
       animate="animate"
       variants={headerVariants as any}
       className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${
-        scrolled
+        mounted && scrolled
           ? "bg-white/95 backdrop-blur-xl shadow-md border-b border-slate-200/60"
           : "bg-transparent border-b border-transparent"
       }`}

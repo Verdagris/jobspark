@@ -206,7 +206,12 @@ const ScoreVisual = () => {
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <motion.span className="text-2xl sm:text-4xl font-extrabold text-amber-500">{rounded}</motion.span>
+                      <motion.span 
+                        className="text-2xl sm:text-4xl font-extrabold text-amber-500"
+                        suppressHydrationWarning
+                      >
+                        {rounded}
+                      </motion.span>
                       <span className="text-lg sm:text-xl font-bold text-amber-500">%</span>
                     </div>
                 </div>

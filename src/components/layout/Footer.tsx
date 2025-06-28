@@ -2,15 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { useState, useEffect } from "react";
 
 export const Footer = () => {
-  const [currentYear, setCurrentYear] = useState<number | null>(null);
-
-  useEffect(() => {
-    setCurrentYear(new Date().getFullYear());
-  }, []);
-
   return (
     <footer className="bg-slate-50 border-t border-slate-200 pt-20 pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -56,7 +49,7 @@ export const Footer = () => {
           </div>
         </div>
         <div className="mt-16 border-t border-slate-200 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-slate-500">
-          <p>© {currentYear || "2025"} JobSpark. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} JobSpark. All rights reserved.</p>
           <p>Proudly built for South Africa 🇿🇦</p>
         </div>
       </div>
