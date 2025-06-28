@@ -41,5 +41,5 @@ export default function AnimatedCounter({
     [springValue, suffix, precision]
   );
 
-  return <span ref={ref} />;
+  return <span ref={ref} suppressHydrationWarning />;
 }
