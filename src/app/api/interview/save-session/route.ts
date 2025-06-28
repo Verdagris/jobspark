@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
       durationMinutes,
       questionsCount,
       sessionData,
-      insights
+      insights,
+      sessionType = 'mock-interview'
     }: {
       userId: string;
       role: string;
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
       questionsCount: number;
       sessionData: any;
       insights: any;
+      sessionType?: string;
     } = await request.json();
 
     const session = await createInterviewSession({
@@ -34,7 +36,8 @@ export async function POST(request: NextRequest) {
       duration_minutes: durationMinutes,
       questions_count: questionsCount,
       session_data: sessionData,
-      insights
+      insights,
+      session_type: sessionType
     });
 
     return NextResponse.json({ sessionId: session.id });
