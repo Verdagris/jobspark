@@ -39,7 +39,8 @@ import {
   getUserSkills, 
   getUserCVs,
   getUserInterviewSessions,
-  getUserProgress
+  getUserProgress,
+  calculateCareerScore
 } from "@/lib/database";
 
 const CareerScorePage = () => {
@@ -66,14 +67,14 @@ const CareerScorePage = () => {
           getUserProgress(user.id)
         ]);
 
-        // Calculate scores using the SAME logic as dashboard
+        // Use the SAME calculation function as dashboard
+        const overall = calculateCareerScore(profile, experiences, skills, cvs, interviewSessions);
+        
+        // Calculate individual component scores for breakdown
         const profileScore = calculateProfileScore(profile, experiences, education, skills);
         const cvScore = calculateCVScore(cvs, experiences, skills);
         const interviewScore = calculateInterviewScore(interviewSessions);
         const marketScore = calculateMarketScore(skills, experiences);
-        
-        // Calculate overall score (SAME as dashboard)
-        const overall = Math.round((profileScore + cvScore + interviewScore + marketScore) / 4);
         
         // Generate trends and improvements
         const trends = generateTrends(overall, interviewSessions, cvs, progress);
@@ -164,30 +165,25 @@ const CareerScorePage = () => {
     loadUserDataAndCalculateScore();
   }, [user]);
 
-  // SAME scoring functions as dashboard to ensure consistency
+  // Component scoring functions (same as dashboard)
   const calculateProfileScore = (profile: any, experiences: any[], education: any[], skills: any[]) => {
     let score = 0;
     
-    // Basic profile info (30 points)
-    if (profile?.full_name) score += 5;
-    if (profile?.email) score += 5;
-    if (profile?.phone) score += 5;
-    if (profile?.location) score += 5;
-    if (profile?.professional_summary) score += 10;
+    // Basic profile info (50 points)
+    if (profile?.full_name) score += 12.5;
+    if (profile?.email) score += 12.5;
+    if (profile?.phone) score += 12.5;
+    if (profile?.location) score += 12.5;
     
     // Experience (25 points)
-    if (experiences.length > 0) score += 10;
-    if (experiences.length >= 2) score += 10;
-    if (experiences.some(exp => exp.description && exp.description.length > 100)) score += 5;
+    if (experiences.length > 0) score += 12.5;
+    if (experiences.length >= 2) score += 12.5;
     
-    // Education (20 points)
-    if (education.length > 0) score += 15;
-    if (education.some(edu => edu.description)) score += 5;
+    // Education (12.5 points)
+    if (education.length > 0) score += 12.5;
     
-    // Skills (25 points)
-    if (skills.length >= 3) score += 10;
-    if (skills.length >= 5) score += 10;
-    if (skills.some(skill => skill.level === 'Advanced' || skill.level === 'Expert')) score += 5;
+    // Skills (12.5 points)
+    if (skills.length >= 3) score += 12.5;
     
     return Math.min(100, score);
   };
@@ -224,7 +220,7 @@ const CareerScorePage = () => {
   };
 
   const calculateMarketScore = (skills: any[], experiences: any[]) => {
-    let score = 50; // Base score
+    let score = 60; // Base score
     
     // In-demand skills
     const inDemandSkills = ['React', 'Python', 'JavaScript', 'AWS', 'Docker', 'Kubernetes', 'Machine Learning', 'Data Analysis'];
@@ -276,7 +272,7 @@ const CareerScorePage = () => {
     return "Skills need updating for current market";
   };
 
-  // Enhanced improvement suggestions with progress tracking
+  // Improvement suggestions
   const getProfileImprovements = (profile: any, experiences: any[], education: any[], skills: any[]) => {
     const improvements = [];
     if (!profile?.professional_summary) improvements.push("Add a professional summary");
@@ -320,7 +316,6 @@ const CareerScorePage = () => {
   // Progress tracking functions
   const getLastProfileImprovement = (progress: any) => {
     if (!progress) return null;
-    // This would track when profile was last updated
     return "Updated 2 days ago";
   };
 
@@ -426,11 +421,11 @@ const CareerScorePage = () => {
     }
     
     recommendations.push({
-      title: "Apply to More Jobs",
-      description: "Increase your visibility by applying to relevant positions",
+      title: "Search for Jobs",
+      description: "Find and save job opportunities that match your profile",
       impact: "+5 points",
-      action: "View Jobs",
-      href: "/job-matches",
+      action: "Search Jobs",
+      href: "/job-search",
       priority: "low"
     });
     

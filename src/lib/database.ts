@@ -55,6 +55,7 @@ export interface GeneratedCV {
   version: number;
   is_active: boolean;
   cv_name: string | null;
+  saved_job_id: string | null;
   created_at: string;
 }
 
@@ -89,6 +90,7 @@ export interface InterviewSession {
   session_data: any; // JSON data with questions and responses
   insights: any; // JSON data with analysis
   session_type: string;
+  saved_job_id: string | null;
   created_at: string;
 }
 
@@ -107,6 +109,66 @@ export interface UserProgress {
   streak_days: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface SavedJob {
+  id: string;
+  user_id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  job_type: string;
+  description: string | null;
+  requirements: string[];
+  benefits: string[];
+  application_url: string | null;
+  source: 'manual' | 'search' | 'imported';
+  status: 'saved' | 'applied' | 'interviewing' | 'rejected' | 'offered';
+  notes: string | null;
+  deadline: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Consistent career score calculation function
+export function calculateCareerScore(profile: any, experiences: any[], skills: any[], cvs: any[], sessions: any[]): number {
+  let score = 0;
+  
+  // Profile completeness (25%)
+  let profileScore = 0;
+  if (profile?.full_name) profileScore += 12.5;
+  if (profile?.email) profileScore += 12.5;
+  if (profile?.phone) profileScore += 12.5;
+  if (profile?.location) profileScore += 12.5;
+  if (profile?.professional_summary) profileScore += 25;
+  if (experiences.length > 0) profileScore += 12.5;
+  if (skills.length >= 3) profileScore += 12.5;
+  score += Math.min(100, profileScore) * 0.25;
+  
+  // CV quality (25%)
+  let cvScore = 40;
+  if (cvs.length > 0) cvScore += 30;
+  if (experiences.length >= 2) cvScore += 20;
+  if (skills.length >= 5) cvScore += 10;
+  score += Math.min(100, cvScore) * 0.25;
+  
+  // Interview readiness (25%)
+  let interviewScore = 30;
+  if (sessions.length > 0) {
+    const avgScore = sessions.reduce((sum: number, s: any) => sum + s.overall_score, 0) / sessions.length;
+    interviewScore = avgScore;
+  }
+  score += interviewScore * 0.25;
+  
+  // Market alignment (25%)
+  let marketScore = 60;
+  if (skills.length >= 5) marketScore += 20;
+  if (experiences.length >= 2) marketScore += 20;
+  score += Math.min(100, marketScore) * 0.25;
+  
+  return Math.round(score);
 }
 
 // User Profile Functions
@@ -812,4 +874,59 @@ export async function getSessionRecommendations(userId: string): Promise<{
     recommended: recommendations.slice(0, 3),
     reasons: reasons.slice(0, 3)
   };
+}
+
+// Saved Jobs Functions
+export async function getUserSavedJobs(userId: string): Promise<SavedJob[]> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createSavedJob(job: Omit<SavedJob, 'id' | 'created_at' | 'updated_at'>): Promise<SavedJob> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .insert([job])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSavedJob(id: string, updates: Partial<SavedJob>): Promise<SavedJob> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSavedJob(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('saved_jobs')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function getSavedJobById(id: string): Promise<SavedJob | null> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
