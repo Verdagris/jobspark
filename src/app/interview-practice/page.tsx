@@ -158,7 +158,7 @@ const coachingSessions: CoachingSession[] = [
   }
 ];
 
-const InterviewCoachPage = () => {
+export default function InterviewPracticePage() {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<'selection' | 'setup' | 'interview' | 'results'>('selection');
   const [selectedSession, setSelectedSession] = useState<CoachingSession | null>(null);
@@ -1444,6 +1444,4 @@ const InterviewCoachPage = () => {
       </div>
     </div>
   );
-};
-
-export default InterviewCoachPage;
+}
