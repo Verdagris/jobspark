@@ -84,7 +84,7 @@ interface CoachingSession {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
   focus: string[];
   isMockInterview?: boolean;
@@ -1290,11 +1290,11 @@ export default function InterviewPracticePage() {
                   </div>
 
                   {/* Session-specific insights */}
-                  {!selectedSession?.isMockInterview && (
+                  {!selectedSession?.isMockInterview && selectedSession && (
                     <div className="bg-white rounded-xl border border-slate-200 p-8">
                       <div className="flex items-center space-x-3 mb-6">
-                        <selectedSession?.icon className="w-6 h-6 text-purple-500" />
-                        <h3 className="text-xl font-bold text-slate-900">{selectedSession?.title} - Key Insights</h3>
+                        <selectedSession.icon className="w-6 h-6 text-purple-500" />
+                        <h3 className="text-xl font-bold text-slate-900">{selectedSession.title} - Key Insights</h3>
                       </div>
                       
                       <div className="grid md:grid-cols-2 gap-6">
