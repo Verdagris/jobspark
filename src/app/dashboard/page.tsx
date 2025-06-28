@@ -31,7 +31,17 @@ import {
   CheckCircle,
   AlertCircle,
   Star,
-  Activity
+  Activity,
+  X,
+  Volume2,
+  VolumeX,
+  Moon,
+  Sun,
+  Shield,
+  HelpCircle,
+  Mail,
+  Phone,
+  MapPin
 } from "lucide-react";
 import Link from "next/link";
 
@@ -41,6 +51,13 @@ const DashboardPage = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [redirecting, setRedirecting] = useState(false);
+  
+  // UI state
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(true);
 
   useEffect(() => {
     const checkOnboarding = async () => {
@@ -234,6 +251,255 @@ const DashboardPage = () => {
     router.push('/');
   };
 
+  // Generate mock notifications
+  const notifications = [
+    {
+      id: 1,
+      type: 'success',
+      title: 'Interview Practice Complete',
+      message: 'Great job on your recent practice session! You scored 85%.',
+      time: '2 hours ago',
+      read: false
+    },
+    {
+      id: 2,
+      type: 'info',
+      title: 'New Job Matches',
+      message: '3 new job opportunities match your profile.',
+      time: '1 day ago',
+      read: false
+    },
+    {
+      id: 3,
+      type: 'reminder',
+      title: 'Weekly Practice Goal',
+      message: 'You\'re 1 session away from your weekly goal!',
+      time: '2 days ago',
+      read: true
+    }
+  ];
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Settings Modal Component
+  const SettingsModal = () => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={() => setShowSettings(false)}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+              <Settings className="w-5 h-5" />
+              <span>Settings</span>
+            </h2>
+            <button
+              onClick={() => setShowSettings(false)}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-slate-600" />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {/* Profile Section */}
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-3 flex items-center space-x-2">
+                <User className="w-4 h-4" />
+                <span>Profile</span>
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Full Name</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {dashboardData?.profile?.full_name || 'Not set'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Email</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {user?.email}
+                  </span>
+                </div>
+                <Link href="/onboarding">
+                  <button className="w-full text-left px-3 py-2 text-sm text-sky-600 hover:bg-sky-50 rounded-lg transition-colors">
+                    Edit Profile
+                  </button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Preferences Section */}
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-3">Preferences</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {soundEnabled ? <Volume2 className="w-4 h-4 text-slate-600" /> : <VolumeX className="w-4 h-4 text-slate-600" />}
+                    <span className="text-sm text-slate-700">Sound Effects</span>
+                  </div>
+                  <button
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      soundEnabled ? 'bg-sky-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        soundEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {darkMode ? <Moon className="w-4 h-4 text-slate-600" /> : <Sun className="w-4 h-4 text-slate-600" />}
+                    <span className="text-sm text-slate-700">Dark Mode</span>
+                  </div>
+                  <button
+                    onClick={() => setDarkMode(!darkMode)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      darkMode ? 'bg-sky-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        darkMode ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Mail className="w-4 h-4 text-slate-600" />
+                    <span className="text-sm text-slate-700">Email Notifications</span>
+                  </div>
+                  <button
+                    onClick={() => setEmailNotifications(!emailNotifications)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      emailNotifications ? 'bg-sky-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Support Section */}
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-3">Support</h3>
+              <div className="space-y-2">
+                <button className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Help Center</span>
+                </button>
+                <button className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
+                  <Shield className="w-4 h-4" />
+                  <span>Privacy Policy</span>
+                </button>
+                <button className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
+                  <Mail className="w-4 h-4" />
+                  <span>Contact Support</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Account Section */}
+            <div className="pt-4 border-t border-slate-200">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  // Notifications Dropdown Component
+  const NotificationsDropdown = () => (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50"
+    >
+      <div className="p-4 border-b border-slate-200">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-900">Notifications</h3>
+          {unreadCount > 0 && (
+            <span className="text-xs bg-sky-100 text-sky-600 px-2 py-1 rounded-full">
+              {unreadCount} new
+            </span>
+          )}
+        </div>
+      </div>
+      
+      <div className="max-h-80 overflow-y-auto">
+        {notifications.length > 0 ? (
+          notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className={`p-4 border-b border-slate-100 hover:bg-slate-50 transition-colors ${
+                !notification.read ? 'bg-sky-50/50' : ''
+              }`}
+            >
+              <div className="flex items-start space-x-3">
+                <div className={`w-2 h-2 rounded-full mt-2 ${
+                  notification.type === 'success' ? 'bg-green-500' :
+                  notification.type === 'info' ? 'bg-blue-500' :
+                  'bg-orange-500'
+                }`} />
+                <div className="flex-1">
+                  <h4 className="font-medium text-slate-900 text-sm">{notification.title}</h4>
+                  <p className="text-sm text-slate-600 mt-1">{notification.message}</p>
+                  <span className="text-xs text-slate-500 mt-2 block">{notification.time}</span>
+                </div>
+                {!notification.read && (
+                  <div className="w-2 h-2 bg-sky-500 rounded-full" />
+                )}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="p-8 text-center">
+            <Bell className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-slate-500 text-sm">No notifications yet</p>
+          </div>
+        )}
+      </div>
+      
+      {notifications.length > 0 && (
+        <div className="p-3 border-t border-slate-200">
+          <button className="w-full text-center text-sm text-sky-600 hover:text-sky-800 transition-colors">
+            Mark all as read
+          </button>
+        </div>
+      )}
+    </motion.div>
+  );
+
   if (loading || profileLoading || redirecting) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -310,7 +576,7 @@ const DashboardPage = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -319,15 +585,30 @@ const DashboardPage = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative">
-                <Bell className="w-5 h-5" />
-                {dashboardData.recentActivity.length > 0 && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-                )}
-              </button>
-              <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              {/* Notifications Button */}
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-medium">{unreadCount}</span>
+                    </div>
+                  )}
+                </button>
+                {showNotifications && <NotificationsDropdown />}
+              </div>
+
+              {/* Settings Button */}
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
                 <Settings className="w-5 h-5" />
               </button>
+
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
@@ -349,6 +630,17 @@ const DashboardPage = () => {
           </div>
         </div>
       </header>
+
+      {/* Settings Modal */}
+      {showSettings && <SettingsModal />}
+
+      {/* Click outside to close notifications */}
+      {showNotifications && (
+        <div 
+          className="fixed inset-0 z-30" 
+          onClick={() => setShowNotifications(false)}
+        />
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
