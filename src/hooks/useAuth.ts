@@ -7,6 +7,7 @@ import type { User, AuthError } from '@/lib/supabase';
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -17,6 +18,7 @@ export const useAuth = () => {
           console.error('Error getting session:', error);
         }
         setUser(session?.user as User || null);
+        setInitialized(true);
       } catch (error) {
         console.error('Error in getInitialSession:', error);
       } finally {
@@ -33,18 +35,20 @@ export const useAuth = () => {
         setUser(session?.user as User || null);
         setLoading(false);
 
-        // Handle the session after OAuth redirect
-        if (event === 'SIGNED_IN' && session) {
-          // Redirect to dashboard after successful sign in
-          if (typeof window !== 'undefined') {
-            window.location.href = '/dashboard';
-          }
+        // Only handle redirects if we're initialized and not already loading
+        if (initialized && event === 'SIGNED_IN' && session) {
+          // Small delay to prevent immediate redirects during hydration
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.location.pathname !== '/dashboard') {
+              window.location.href = '/dashboard';
+            }
+          }, 100);
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [initialized]);
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {

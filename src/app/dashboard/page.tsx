@@ -40,37 +40,47 @@ const DashboardPage = () => {
   const router = useRouter();
   const [profileLoading, setProfileLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     const checkOnboarding = async () => {
-      if (!loading && !user) {
-        router.push('/auth');
+      if (loading) return; // Wait for auth to finish loading
+      
+      if (!user) {
+        if (!redirecting) {
+          setRedirecting(true);
+          router.push('/auth');
+        }
         return;
       }
 
-      if (user) {
-        try {
-          const profile = await getUserProfile(user.id);
-          if (!profile || !profile.onboarding_completed) {
+      try {
+        const profile = await getUserProfile(user.id);
+        if (!profile || !profile.onboarding_completed) {
+          if (!redirecting) {
+            setRedirecting(true);
             router.push('/onboarding');
-            return;
           }
-          
-          // Load dashboard data
-          await loadDashboardData();
-        } catch (error) {
-          console.error('Error checking profile:', error);
-          // If profile doesn't exist, redirect to onboarding
-          router.push('/onboarding');
           return;
-        } finally {
-          setProfileLoading(false);
         }
+        
+        // Load dashboard data
+        await loadDashboardData();
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        // If profile doesn't exist, redirect to onboarding
+        if (!redirecting) {
+          setRedirecting(true);
+          router.push('/onboarding');
+        }
+        return;
+      } finally {
+        setProfileLoading(false);
       }
     };
 
     checkOnboarding();
-  }, [user, loading, router]);
+  }, [user, loading, router, redirecting]);
 
   const loadDashboardData = async () => {
     if (!user) return;
@@ -224,7 +234,7 @@ const DashboardPage = () => {
     router.push('/');
   };
 
-  if (loading || profileLoading) {
+  if (loading || profileLoading || redirecting) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex items-center space-x-2">
