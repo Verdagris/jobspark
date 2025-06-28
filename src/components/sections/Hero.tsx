@@ -205,13 +205,22 @@ const animationScenes = [
 
 export const Hero = () => {
   const [sceneIndex, setSceneIndex] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
 
+  // Set isMounted to true after component mounts on client side
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Only start the interval after the component has mounted
+  useEffect(() => {
+    if (!isMounted) return;
+
     const interval = setInterval(() => {
       setSceneIndex((prevIndex) => (prevIndex + 1) % animationScenes.length);
     }, 4000); // Slightly faster transitions
     return () => clearInterval(interval);
-  }, []);
+  }, [isMounted]);
 
   const CurrentScene = animationScenes[sceneIndex];
   const CurrentIcon = CurrentScene.icon;
