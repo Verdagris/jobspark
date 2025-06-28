@@ -42,7 +42,13 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useAutoInterview } from "@/hooks/useAutoInterview";
-import { getUserProfile, getUserExperiences, getUserEducation, getUserSkills, getUserInterviewSessions, getInterviewInsights } from "@/lib/database";
+import { 
+  getUserProfile, 
+  getUserExperiences, 
+  getUserEducation, 
+  getUserSkills, 
+  getUserInterviewSessions 
+} from "@/lib/database";
 
 interface Question {
   id: number;
