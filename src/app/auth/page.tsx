@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle, Shield, Zap, AlertCircle, Clock, RefreshCw } from "lucide-react";
 import Link from "next/link";
@@ -172,7 +172,7 @@ const AuthPageContent = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   
-  const { signUp, signIn, signInWithGoogle, user } = useAuth();
+  const { signUp, signIn, user } = useAuth();
   const router = useRouter();
 
   // Check for error parameters using window.location instead of searchParams
@@ -495,18 +495,6 @@ const AuthPageContent = () => {
             </div>
         </div>
       </main>
-    </div>
-  );
-};
-
-// --- Loading Component ---
-const AuthPageLoading = () => {
-  return (
-    <div className="min-h-screen w-full bg-slate-50 relative overflow-hidden flex items-center justify-center p-4">
-      <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin"></div>
-        <span className="text-slate-600 font-medium">Loading...</span>
-      </div>
     </div>
   );
 };
