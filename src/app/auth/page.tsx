@@ -157,7 +157,7 @@ const AnimatedBenefits = () => {
     );
 };
 
-// --- Auth Page Content Component (wrapped in Suspense) ---
+// --- Auth Page Content Component ---
 const AuthPageContent = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -172,10 +172,10 @@ const AuthPageContent = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   
-  const { signUp, signIn, user } = useAuth();
+  const { signUp, signIn, signInWithGoogle, user } = useAuth();
   const router = useRouter();
 
-  // Check for error parameters using URLSearchParams directly
+  // Check for error parameters using window.location instead of searchParams
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -513,11 +513,7 @@ const AuthPageLoading = () => {
 
 // --- Main AuthPage Component ---
 const AuthPage = () => {
-  return (
-    <Suspense fallback={<AuthPageLoading />}>
-      <AuthPageContent />
-    </Suspense>
-  );
+  return <AuthPageContent />;
 };
 
 export default AuthPage;
