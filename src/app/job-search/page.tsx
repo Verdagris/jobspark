@@ -397,8 +397,10 @@ const JobSearchPage = () => {
     }
     
     // Navigate to interview practice with job context
-    const practiceUrl = `/interview-practice?jobId=${job.savedJobId}&role=${encodeURIComponent(job.title)}&company=${encodeURIComponent(job.company)}`;
-    window.location.href = practiceUrl;
+    if (typeof window !== 'undefined') {
+      const practiceUrl = `/interview-practice?jobId=${job.savedJobId}&role=${encodeURIComponent(job.title)}&company=${encodeURIComponent(job.company)}`;
+      window.location.href = practiceUrl;
+    }
   };
 
   const handleApplyNow = async (job: any) => {

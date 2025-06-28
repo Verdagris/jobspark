@@ -172,7 +172,7 @@ const AuthPageContent = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   
-  const { signUp, signIn, signInWithGoogle, user } = useAuth();
+  const { signUp, signIn, user } = useAuth();
   const router = useRouter();
 
   // Check for error parameters using URLSearchParams directly
