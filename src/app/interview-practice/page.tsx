@@ -15,6 +15,7 @@ import {
   CheckCircle,
   AlertCircle,
   RotateCcw,
+  Send,
   User,
   Briefcase,
   FileText,
@@ -32,7 +33,10 @@ import {
   Timer,
   TrendingDown,
   Users,
+  DollarSign,
   Settings,
+  Info,
+  ArrowRight,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
@@ -65,16 +69,6 @@ interface QuestionResponse {
   };
 }
 
-interface CoachingSession {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  focus: string;
-  questionTypes: string[];
-}
-
 interface InterviewSetup {
   sessionType: string;
   role: string;
@@ -91,10 +85,163 @@ interface PastSession {
   insights: any;
 }
 
-const InterviewCoachPage = () => {
+interface SessionTypeConfig {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  color: string;
+  tips: string[];
+  bestPractices: string[];
+  duration: string;
+  questionCount: number;
+}
+
+const sessionTypes: SessionTypeConfig[] = [
+  {
+    id: 'introduction',
+    title: 'Introducing Yourself',
+    description: 'Master your elevator pitch and personal branding',
+    icon: User,
+    color: 'from-blue-500 to-cyan-500',
+    duration: '10-15 minutes',
+    questionCount: 4,
+    tips: [
+      'Keep your introduction to 60-90 seconds',
+      'Follow the Present-Past-Future structure',
+      'Highlight your unique value proposition',
+      'Practice your elevator pitch until it feels natural'
+    ],
+    bestPractices: [
+      'Start with your current role and key strengths',
+      'Briefly mention relevant past experience',
+      'Connect your background to the role you want',
+      'End with enthusiasm about the opportunity',
+      'Avoid personal details unrelated to work',
+      'Practice different versions for different audiences'
+    ]
+  },
+  {
+    id: 'experience',
+    title: 'Highlighting Experience',
+    description: 'Showcase your achievements using the STAR method',
+    icon: Briefcase,
+    color: 'from-green-500 to-emerald-500',
+    duration: '15-20 minutes',
+    questionCount: 5,
+    tips: [
+      'Use the STAR method: Situation, Task, Action, Result',
+      'Quantify your achievements with specific numbers',
+      'Choose examples that show progression and growth',
+      'Prepare 3-5 detailed stories covering different skills'
+    ],
+    bestPractices: [
+      'Set the scene clearly but concisely',
+      'Focus more on your actions than the situation',
+      'Highlight the impact and results you achieved',
+      'Show what you learned from each experience',
+      'Choose examples relevant to the target role',
+      'Practice timing - aim for 2-3 minutes per story'
+    ]
+  },
+  {
+    id: 'strengths-weaknesses',
+    title: 'Strengths & Weaknesses',
+    description: 'Demonstrate self-awareness and growth mindset',
+    icon: Target,
+    color: 'from-purple-500 to-pink-500',
+    duration: '10-15 minutes',
+    questionCount: 4,
+    tips: [
+      'Choose genuine strengths relevant to the role',
+      'Support strengths with specific examples',
+      'For weaknesses, show how you\'re improving',
+      'Avoid cliché weaknesses like "perfectionist"'
+    ],
+    bestPractices: [
+      'Pick 2-3 core strengths that differentiate you',
+      'Use the CAR method: Context, Action, Result',
+      'For weaknesses, choose real areas for improvement',
+      'Show concrete steps you\'re taking to improve',
+      'Demonstrate self-reflection and learning',
+      'Turn weaknesses into development opportunities'
+    ]
+  },
+  {
+    id: 'salary',
+    title: 'Discussing Salary',
+    description: 'Navigate compensation conversations confidently',
+    icon: DollarSign,
+    color: 'from-orange-500 to-red-500',
+    duration: '10-15 minutes',
+    questionCount: 4,
+    tips: [
+      'Research market rates for your role and location',
+      'Consider total compensation, not just salary',
+      'Be prepared to justify your expectations',
+      'Know when to negotiate and when to accept'
+    ],
+    bestPractices: [
+      'Let the employer bring up salary first if possible',
+      'Provide a range based on market research',
+      'Emphasize your value and unique contributions',
+      'Consider benefits, growth opportunities, and culture',
+      'Be flexible but know your minimum acceptable offer',
+      'Practice discussing compensation confidently'
+    ]
+  },
+  {
+    id: 'job-specific',
+    title: 'Job-Specific Interview',
+    description: 'Technical and role-specific competency questions',
+    icon: Settings,
+    color: 'from-indigo-500 to-purple-500',
+    duration: '15-25 minutes',
+    questionCount: 6,
+    tips: [
+      'Review the job description thoroughly',
+      'Prepare examples that match required skills',
+      'Research industry trends and best practices',
+      'Be ready to discuss technical challenges'
+    ],
+    bestPractices: [
+      'Study the company and role requirements',
+      'Prepare specific examples for each key skill',
+      'Show continuous learning and adaptation',
+      'Discuss how you solve problems in your field',
+      'Demonstrate knowledge of industry standards',
+      'Connect your experience to their needs'
+    ]
+  },
+  {
+    id: 'mock-interview',
+    title: 'Full Mock Interview',
+    description: 'Complete interview simulation with comprehensive feedback',
+    icon: MessageSquare,
+    color: 'from-slate-600 to-slate-800',
+    duration: '25-35 minutes',
+    questionCount: 8,
+    tips: [
+      'Treat this like a real interview',
+      'Prepare questions to ask the interviewer',
+      'Practice your body language and tone',
+      'Review common interview questions beforehand'
+    ],
+    bestPractices: [
+      'Arrive mentally prepared and confident',
+      'Listen carefully to each question',
+      'Take a moment to think before answering',
+      'Maintain good eye contact and posture',
+      'Ask thoughtful questions about the role',
+      'Follow up with a thank you message'
+    ]
+  }
+];
+
+const InterviewPracticePage = () => {
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState<'selection' | 'setup' | 'interview' | 'results'>('selection');
-  const [selectedSession, setSelectedSession] = useState<CoachingSession | null>(null);
+  const [currentStep, setCurrentStep] = useState<'selection' | 'tips' | 'setup' | 'interview' | 'results'>('selection');
+  const [selectedSessionType, setSelectedSessionType] = useState<SessionTypeConfig | null>(null);
   const [interviewSetup, setInterviewSetup] = useState<InterviewSetup>({
     sessionType: '',
     role: '',
@@ -110,18 +257,12 @@ const InterviewCoachPage = () => {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false);
+  const [pendingFollowUp, setPendingFollowUp] = useState<string | null>(null);
   
   // Audio state
   const [isPlayingQuestion, setIsPlayingQuestion] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [canInterrupt, setCanInterrupt] = useState(false);
-  
-  // Conversational state
-  const [currentFollowUp, setCurrentFollowUp] = useState<string | null>(null);
-  const [followUpCount, setFollowUpCount] = useState(0);
-  const [isWaitingForFollowUp, setIsWaitingForFollowUp] = useState(false);
-  const [lastAnalysis, setLastAnalysis] = useState<any>(null);
   
   // Speech recognition with auto-detection
   const {
@@ -146,7 +287,7 @@ const InterviewCoachPage = () => {
     resetSilenceDetection,
     onSilenceDetected,
     detectSilence
-  } = useAutoInterview(3000, 20); // 3 seconds silence, min 20 chars
+  } = useAutoInterview(2000, 15); // Reduced to 2 seconds silence, min 15 chars
   
   // Timing
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
@@ -163,64 +304,6 @@ const InterviewCoachPage = () => {
   const [loadingPastSessions, setLoadingPastSessions] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Coaching session options
-  const coachingSessions: CoachingSession[] = [
-    {
-      id: 'introduction',
-      title: 'Introducing Yourself',
-      description: 'Master your elevator pitch and personal brand presentation',
-      icon: User,
-      color: 'from-blue-500 to-cyan-500',
-      focus: 'Self-introduction, personal branding, and value proposition',
-      questionTypes: ['introduction', 'personal-brand', 'career-overview']
-    },
-    {
-      id: 'experience',
-      title: 'Highlighting Experience',
-      description: 'Practice discussing your work history and achievements',
-      icon: Briefcase,
-      color: 'from-green-500 to-emerald-500',
-      focus: 'Work experience, achievements, and STAR method responses',
-      questionTypes: ['behavioral', 'experience-based', 'achievement']
-    },
-    {
-      id: 'strengths-weaknesses',
-      title: 'Strengths & Weaknesses',
-      description: 'Navigate self-assessment questions with confidence',
-      icon: Target,
-      color: 'from-orange-500 to-red-500',
-      focus: 'Self-awareness, growth mindset, and professional development',
-      questionTypes: ['self-assessment', 'behavioral', 'growth-mindset']
-    },
-    {
-      id: 'salary',
-      title: 'Discussing Salary',
-      description: 'Handle compensation conversations professionally',
-      icon: TrendingUp,
-      color: 'from-purple-500 to-pink-500',
-      focus: 'Salary expectations, negotiation, and value justification',
-      questionTypes: ['negotiation', 'compensation', 'value-proposition']
-    },
-    {
-      id: 'job-specific',
-      title: 'Job-Specific Interview',
-      description: 'Practice technical and role-specific questions',
-      icon: Settings,
-      color: 'from-indigo-500 to-blue-500',
-      focus: 'Technical skills, role competencies, and industry knowledge',
-      questionTypes: ['technical', 'role-specific', 'industry-knowledge']
-    },
-    {
-      id: 'mock-interview',
-      title: 'Full Mock Interview',
-      description: 'Complete interview simulation with all question types',
-      icon: Award,
-      color: 'from-slate-700 to-slate-900',
-      focus: 'Comprehensive interview practice with realistic flow',
-      questionTypes: ['introduction', 'behavioral', 'technical', 'situational', 'closing']
-    }
-  ];
 
   // Timer for current question
   useEffect(() => {
@@ -242,7 +325,7 @@ const InterviewCoachPage = () => {
     };
   }, [currentStep, questionStartTime]);
 
-  // Auto-detect silence and handle response
+  // Auto-detect silence and move to next question
   useEffect(() => {
     if (isWaitingForResponse && isListening) {
       detectSilence(transcript, isListening);
@@ -252,8 +335,8 @@ const InterviewCoachPage = () => {
   // Set up silence detection callback
   useEffect(() => {
     onSilenceDetected(() => {
-      if (transcript.trim().length > 20) {
-        handleResponseComplete();
+      if (transcript.trim().length > 15) {
+        submitResponse();
       }
     });
   }, [transcript]);
@@ -264,14 +347,6 @@ const InterviewCoachPage = () => {
       loadPastSessions();
     }
   }, [user]);
-
-  // Handle interruption when user starts speaking during audio playback
-  useEffect(() => {
-    if (isListening && transcript.length > 5 && isPlayingQuestion && canInterrupt) {
-      stopAudio();
-      setCanInterrupt(false);
-    }
-  }, [transcript, isListening, isPlayingQuestion, canInterrupt]);
 
   const loadPastSessions = async () => {
     if (!user) return;
@@ -341,14 +416,14 @@ const InterviewCoachPage = () => {
       setInterviewStartTime(Date.now());
       setQuestionStartTime(Date.now());
       
-      // Auto-start the interview flow
+      // Auto-start the interview flow with reduced delay
       setTimeout(() => {
         if (audioEnabled && data.questions.length > 0) {
           playQuestionAndStartListening(data.questions[0].question);
         } else {
           startListeningFlow();
         }
-      }, 1000);
+      }, 500); // Reduced from 1000ms to 500ms
     } catch (error) {
       console.error('Error generating questions:', error);
       alert('Failed to generate interview questions. Please try again.');
@@ -357,7 +432,7 @@ const InterviewCoachPage = () => {
     }
   };
 
-  // Play question and automatically start listening
+  // Play question and automatically start listening with South African voice
   const playQuestionAndStartListening = async (questionText: string) => {
     if (!audioEnabled) {
       startListeningFlow();
@@ -366,12 +441,14 @@ const InterviewCoachPage = () => {
     
     try {
       setIsPlayingQuestion(true);
-      setCanInterrupt(true);
       
       const response = await fetch('/api/interview/text-to-speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: questionText })
+        body: JSON.stringify({ 
+          text: questionText,
+          voiceId: 'onwK4e9ZLuTAKqWW03F9' // South African English voice
+        })
       });
       
       if (!response.ok) throw new Error('Failed to generate speech');
@@ -384,17 +461,15 @@ const InterviewCoachPage = () => {
       
       audio.onended = () => {
         setIsPlayingQuestion(false);
-        setCanInterrupt(false);
         URL.revokeObjectURL(audioUrl);
-        // Automatically start listening after question finishes
+        // Reduced delay before starting to listen
         setTimeout(() => {
           startListeningFlow();
-        }, 500);
+        }, 300); // Reduced from 500ms to 300ms
       };
       
       audio.onerror = () => {
         setIsPlayingQuestion(false);
-        setCanInterrupt(false);
         URL.revokeObjectURL(audioUrl);
         startListeningFlow();
       };
@@ -403,37 +478,45 @@ const InterviewCoachPage = () => {
     } catch (error) {
       console.error('Error playing question:', error);
       setIsPlayingQuestion(false);
-      setCanInterrupt(false);
       startListeningFlow();
     }
   };
 
-  // Start the listening flow
+  // Start the listening flow automatically
   const startListeningFlow = () => {
     if (speechSupported) {
-      startListening();
-      startWaitingForResponse();
+      // Small delay to ensure audio has stopped
+      setTimeout(() => {
+        startListening();
+        startWaitingForResponse();
+      }, 100);
     }
   };
 
-  // Stop current audio
+  // Stop current audio and allow interruption
   const stopAudio = () => {
     if (currentAudio) {
       currentAudio.pause();
       currentAudio.currentTime = 0;
       setIsPlayingQuestion(false);
-      setCanInterrupt(false);
+      // Start listening immediately when interrupted
+      startListeningFlow();
     }
   };
 
-  // Handle when user completes their response
-  const handleResponseComplete = async () => {
+  // Detect if user starts speaking while audio is playing
+  useEffect(() => {
+    if (isPlayingQuestion && transcript.length > 5) {
+      stopAudio();
+    }
+  }, [transcript, isPlayingQuestion]);
+
+  // Submit response and move to next question with faster processing
+  const submitResponse = async () => {
     if (!finalTranscript.trim() && !interimTranscript.trim()) return;
     
     const responseText = (finalTranscript + ' ' + interimTranscript).trim();
-    const currentQuestion = isWaitingForFollowUp && currentFollowUp 
-      ? { question: currentFollowUp, type: 'follow-up', keyPoints: [] }
-      : questions[currentQuestionIndex];
+    const currentQuestion = questions[currentQuestionIndex];
     const duration = Date.now() - questionStartTime;
     
     // Stop listening and waiting
@@ -444,7 +527,7 @@ const InterviewCoachPage = () => {
     setIsAnalyzing(true);
     
     try {
-      // Analyze the response
+      // Analyze the response with session type context
       const analysisResponse = await fetch('/api/interview/analyze-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -452,194 +535,125 @@ const InterviewCoachPage = () => {
           question: currentQuestion.question,
           response: responseText,
           questionType: currentQuestion.type,
-          keyPoints: currentQuestion.keyPoints || [],
+          keyPoints: currentQuestion.keyPoints,
           role: interviewSetup.role,
           experienceYears: interviewSetup.experienceYears,
           duration,
           sessionType: interviewSetup.sessionType,
-          isFollowUp: isWaitingForFollowUp
+          isFollowUp: false
         })
       });
       
       if (!analysisResponse.ok) throw new Error('Failed to analyze response');
       
       const analysis = await analysisResponse.json();
-      setLastAnalysis(analysis);
       
-      // For coaching sessions (not mock interview), provide immediate feedback
-      if (interviewSetup.sessionType !== 'mock-interview' && !isWaitingForFollowUp) {
-        await provideFeedback(analysis);
+      // Save the response
+      const newResponse: QuestionResponse = {
+        question: currentQuestion.question,
+        response: responseText,
+        score: analysis.score,
+        type: currentQuestion.type,
+        duration,
+        analysis: {
+          strengths: analysis.strengths,
+          improvements: analysis.improvements,
+          feedback: analysis.feedback,
+          speechMetrics: analysis.speechMetrics,
+          speechCoaching: analysis.speechCoaching,
+          detailedFeedback: analysis.detailedFeedback
+        }
+      };
+      
+      setResponses(prev => [...prev, newResponse]);
+      
+      // Decide next action based on session type and response quality
+      const shouldFollowUp = interviewSetup.sessionType !== 'mock-interview' && 
+                            analysis.score < 75 && 
+                            Math.random() > 0.4; // 60% chance for follow-up on low scores
+      
+      if (shouldFollowUp && currentQuestionIndex < questions.length - 1) {
+        // Generate and ask follow-up question
+        generateFollowUpQuestion(currentQuestion.question, responseText, analysis);
+      } else {
+        // Move to next question or finish
+        proceedToNext();
       }
-      
-      // Save the response if it's not a follow-up
-      if (!isWaitingForFollowUp) {
-        const newResponse: QuestionResponse = {
-          question: currentQuestion.question,
-          response: responseText,
-          score: analysis.score,
-          type: currentQuestion.type,
-          duration,
-          analysis: {
-            strengths: analysis.strengths,
-            improvements: analysis.improvements,
-            feedback: analysis.feedback,
-            speechMetrics: analysis.speechMetrics,
-            speechCoaching: analysis.speechCoaching,
-            detailedFeedback: analysis.detailedFeedback
-          }
-        };
-        
-        setResponses(prev => [...prev, newResponse]);
-      }
-      
-      // Decide next action: follow-up, feedback, or next question
-      await decideNextAction(analysis, responseText);
-      
     } catch (error) {
       console.error('Error analyzing response:', error);
       alert('Failed to analyze response. Please try again.');
+      proceedToNext();
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // Provide immediate feedback for coaching sessions
-  const provideFeedback = async (analysis: any) => {
-    const feedbackText = generateFeedbackText(analysis);
-    
-    if (audioEnabled) {
-      try {
-        const response = await fetch('/api/interview/text-to-speech', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: feedbackText })
-        });
-        
-        if (response.ok) {
-          const audioBlob = await response.blob();
-          const audioUrl = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioUrl);
-          
-          await new Promise((resolve) => {
-            audio.onended = resolve;
-            audio.onerror = resolve;
-            audio.play();
-          });
-          
-          URL.revokeObjectURL(audioUrl);
-        }
-      } catch (error) {
-        console.error('Error playing feedback:', error);
-      }
-    }
-    
-    // Small pause before continuing
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  };
-
-  // Generate feedback text based on analysis
-  const generateFeedbackText = (analysis: any): string => {
-    if (analysis.score >= 85) {
-      return `Excellent response! ${analysis.strengths[0] || 'You demonstrated strong communication skills.'}`;
-    } else if (analysis.score >= 70) {
-      return `Good answer. ${analysis.improvements[0] ? `To strengthen it further, ${analysis.improvements[0].toLowerCase()}.` : 'Consider adding more specific examples.'}`;
-    } else {
-      return `That's a good start. ${analysis.improvements[0] ? `Try to ${analysis.improvements[0].toLowerCase()}.` : 'Consider providing more detailed examples.'}`;
-    }
-  };
-
-  // Decide whether to ask follow-up, give feedback, or move to next question
-  const decideNextAction = async (analysis: any, responseText: string) => {
-    // For follow-up responses, always move to next question
-    if (isWaitingForFollowUp) {
-      setIsWaitingForFollowUp(false);
-      setCurrentFollowUp(null);
-      setFollowUpCount(0);
-      await moveToNextQuestion();
-      return;
-    }
-    
-    // Decide if we should ask a follow-up question
-    const shouldAskFollowUp = 
-      followUpCount < 1 && // Max 1 follow-up per question
-      (analysis.score < 75 || responseText.length < 100) && // Low score or short response
-      Math.random() > 0.3; // 70% chance to ask follow-up
-    
-    if (shouldAskFollowUp) {
-      await generateAndAskFollowUp(analysis, responseText);
-    } else {
-      await moveToNextQuestion();
-    }
-  };
-
-  // Generate and ask a follow-up question
-  const generateAndAskFollowUp = async (analysis: any, responseText: string) => {
+  // Generate follow-up question
+  const generateFollowUpQuestion = async (originalQuestion: string, response: string, analysis: any) => {
     setIsGeneratingFollowUp(true);
     
     try {
-      const response = await fetch('/api/interview/generate-followup', {
+      const followUpResponse = await fetch('/api/interview/generate-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          originalQuestion: questions[currentQuestionIndex].question,
-          response: responseText,
+          originalQuestion,
+          response,
           analysis,
           role: interviewSetup.role
         })
       });
       
-      if (!response.ok) throw new Error('Failed to generate follow-up');
+      if (!followUpResponse.ok) throw new Error('Failed to generate follow-up');
       
-      const data = await response.json();
-      setCurrentFollowUp(data.followUpQuestion);
-      setFollowUpCount(prev => prev + 1);
-      setIsWaitingForFollowUp(true);
+      const { followUpQuestion } = await followUpResponse.json();
+      setPendingFollowUp(followUpQuestion);
       
-      resetTranscript();
-      setQuestionStartTime(Date.now());
+      // Provide quick feedback and ask follow-up
+      const feedbackText = `${analysis.feedback.split('.')[0]}. Let me ask you this:`;
       
-      // Play the follow-up question
       setTimeout(() => {
         if (audioEnabled) {
-          playQuestionAndStartListening(data.followUpQuestion);
+          playQuestionAndStartListening(`${feedbackText} ${followUpQuestion}`);
         } else {
           startListeningFlow();
         }
-      }, 1500); // Pause before follow-up
+        setPendingFollowUp(null);
+        setQuestionStartTime(Date.now());
+        resetTranscript();
+      }, 800); // Reduced delay
       
     } catch (error) {
       console.error('Error generating follow-up:', error);
-      // If follow-up fails, just move to next question
-      await moveToNextQuestion();
+      proceedToNext();
     } finally {
       setIsGeneratingFollowUp(false);
     }
   };
 
-  // Move to next question or finish interview
-  const moveToNextQuestion = async () => {
+  // Proceed to next question or finish
+  const proceedToNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setQuestionStartTime(Date.now());
-      setFollowUpCount(0);
       resetTranscript();
       
-      // Auto-play next question and start listening
+      // Reduced pause between questions
       setTimeout(() => {
         if (audioEnabled) {
           playQuestionAndStartListening(questions[currentQuestionIndex + 1].question);
         } else {
           startListeningFlow();
         }
-      }, 2000); // 2 second pause between questions
+      }, 1000); // Reduced from 2000ms to 1000ms
     } else {
       // Interview complete
-      finishInterview();
+      finishInterview(responses);
     }
   };
 
   // Finish interview and generate final analysis
-  const finishInterview = async () => {
+  const finishInterview = async (allResponses: QuestionResponse[]) => {
     setIsGeneratingAnalysis(true);
     
     try {
@@ -651,7 +665,7 @@ const InterviewCoachPage = () => {
         body: JSON.stringify({
           role: interviewSetup.role,
           experienceYears: interviewSetup.experienceYears,
-          responses: responses,
+          responses: allResponses,
           overallDuration,
           sessionType: interviewSetup.sessionType
         })
@@ -678,9 +692,8 @@ const InterviewCoachPage = () => {
               questionsCount: questions.length,
               sessionData: {
                 questions,
-                responses: responses,
-                setup: interviewSetup,
-                sessionType: interviewSetup.sessionType
+                responses: allResponses,
+                setup: interviewSetup
               },
               insights: analysis
             })
@@ -703,14 +716,12 @@ const InterviewCoachPage = () => {
   // Reset interview
   const resetInterview = () => {
     setCurrentStep('selection');
-    setSelectedSession(null);
+    setSelectedSessionType(null);
     setQuestions([]);
     setCurrentQuestionIndex(0);
     setResponses([]);
     setFinalAnalysis(null);
-    setCurrentFollowUp(null);
-    setFollowUpCount(0);
-    setIsWaitingForFollowUp(false);
+    setPendingFollowUp(null);
     resetTranscript();
     stopAudio();
     stopListening();
@@ -718,9 +729,23 @@ const InterviewCoachPage = () => {
     setCurrentQuestionDuration(0);
   };
 
-  const currentQuestion = isWaitingForFollowUp && currentFollowUp 
-    ? { question: currentFollowUp, type: 'follow-up' }
-    : questions[currentQuestionIndex];
+  // Handle session type selection
+  const handleSessionTypeSelect = (sessionType: SessionTypeConfig) => {
+    setSelectedSessionType(sessionType);
+    setInterviewSetup(prev => ({
+      ...prev,
+      sessionType: sessionType.id,
+      questionCount: sessionType.questionCount
+    }));
+    setCurrentStep('tips');
+  };
+
+  // Handle proceeding from tips to setup
+  const proceedToSetup = () => {
+    setCurrentStep('setup');
+  };
+
+  const currentQuestion = questions[currentQuestionIndex];
   const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
 
   return (
@@ -745,11 +770,12 @@ const InterviewCoachPage = () => {
                 <MessageSquare className="w-8 h-8 text-purple-500" />
                 <div>
                   <h1 className="text-xl font-bold text-slate-900">
-                    AI Interview Coach
+                    AI Interview Practice
                   </h1>
                   <p className="text-sm text-slate-600">
-                    {currentStep === 'selection' && 'Choose your coaching session'}
-                    {currentStep === 'setup' && 'Set up your practice session'}
+                    {currentStep === 'selection' && 'Choose your practice session'}
+                    {currentStep === 'tips' && 'Tips & Best Practices'}
+                    {currentStep === 'setup' && 'Set up your session'}
                     {currentStep === 'interview' && `Question ${currentQuestionIndex + 1} of ${questions.length}`}
                     {currentStep === 'results' && 'Session Complete'}
                   </p>
@@ -786,7 +812,7 @@ const InterviewCoachPage = () => {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
-          {/* Session Selection Step */}
+          {/* Session Type Selection */}
           {currentStep === 'selection' && (
             <motion.div
               key="selection"
@@ -797,10 +823,10 @@ const InterviewCoachPage = () => {
             >
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-slate-900 mb-4">
-                  Choose Your Coaching Session
+                  Choose Your Practice Session
                 </h2>
                 <p className="text-lg text-slate-600">
-                  Select the area you'd like to practice and improve
+                  Select the type of interview practice you'd like to focus on
                 </p>
               </div>
 
@@ -842,34 +868,24 @@ const InterviewCoachPage = () => {
                 </div>
               )}
 
-              <div className="grid md:grid-cols-2 gap-6">
-                {coachingSessions.map((session) => (
+              {/* Session Type Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sessionTypes.map((sessionType) => (
                   <motion.div
-                    key={session.id}
+                    key={sessionType.id}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      setSelectedSession(session);
-                      setInterviewSetup(prev => ({ ...prev, sessionType: session.id }));
-                      setCurrentStep('setup');
-                    }}
+                    onClick={() => handleSessionTypeSelect(sessionType)}
                     className="bg-white rounded-xl border border-slate-200 p-6 cursor-pointer hover:shadow-lg transition-all duration-300 group"
                   >
-                    <div className="flex items-start space-x-4">
-                      <div className={`p-3 rounded-lg bg-gradient-to-r ${session.color} shadow-lg group-hover:shadow-xl transition-shadow`}>
-                        <session.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">
-                          {session.title}
-                        </h3>
-                        <p className="text-slate-600 text-sm mb-3 leading-relaxed">
-                          {session.description}
-                        </p>
-                        <div className="text-xs text-slate-500">
-                          <span className="font-medium">Focus:</span> {session.focus}
-                        </div>
-                      </div>
+                    <div className={`inline-flex p-3 rounded-lg bg-gradient-to-r ${sessionType.color} mb-4 group-hover:scale-110 transition-transform`}>
+                      <sessionType.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">{sessionType.title}</h3>
+                    <p className="text-slate-600 text-sm mb-4">{sessionType.description}</p>
+                    <div className="flex items-center justify-between text-sm text-slate-500">
+                      <span>{sessionType.duration}</span>
+                      <span>{sessionType.questionCount} questions</span>
                     </div>
                   </motion.div>
                 ))}
@@ -877,8 +893,100 @@ const InterviewCoachPage = () => {
             </motion.div>
           )}
 
+          {/* Tips and Best Practices */}
+          {currentStep === 'tips' && selectedSessionType && (
+            <motion.div
+              key="tips"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <div className="text-center">
+                <div className={`inline-flex p-4 rounded-full bg-gradient-to-r ${selectedSessionType.color} mb-4`}>
+                  <selectedSessionType.icon className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">
+                  {selectedSessionType.title}
+                </h2>
+                <p className="text-lg text-slate-600">
+                  {selectedSessionType.description}
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Tips */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <Lightbulb className="w-6 h-6 text-yellow-500" />
+                    <h3 className="text-xl font-bold text-slate-900">Key Tips</h3>
+                  </div>
+                  <ul className="space-y-3">
+                    {selectedSessionType.tips.map((tip, index) => (
+                      <li key={index} className="flex items-start space-x-3">
+                        <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-yellow-600 text-sm font-bold">{index + 1}</span>
+                        </div>
+                        <span className="text-slate-700">{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Best Practices */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <Award className="w-6 h-6 text-green-500" />
+                    <h3 className="text-xl font-bold text-slate-900">Best Practices</h3>
+                  </div>
+                  <ul className="space-y-3">
+                    {selectedSessionType.bestPractices.map((practice, index) => (
+                      <li key={index} className="flex items-start space-x-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-slate-700">{practice}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Session Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div className="flex items-start space-x-3">
+                  <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-semibold mb-2">What to Expect</p>
+                    <ul className="space-y-1">
+                      <li>• Duration: {selectedSessionType.duration}</li>
+                      <li>• Questions: {selectedSessionType.questionCount} focused questions</li>
+                      <li>• Format: Conversational with real-time feedback</li>
+                      <li>• Voice: South African AI coach</li>
+                      <li>• Analysis: Detailed performance insights</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => setCurrentStep('selection')}
+                  className="px-6 py-3 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Back to Selection
+                </button>
+                <button
+                  onClick={proceedToSetup}
+                  className="flex items-center space-x-2 px-8 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                >
+                  <span>Continue to Setup</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Setup Step */}
-          {currentStep === 'setup' && selectedSession && (
+          {currentStep === 'setup' && selectedSessionType && (
             <motion.div
               key="setup"
               initial={{ opacity: 0, y: 20 }}
@@ -887,16 +995,11 @@ const InterviewCoachPage = () => {
               className="space-y-8"
             >
               <div className="text-center">
-                <div className="flex items-center justify-center space-x-3 mb-4">
-                  <div className={`p-3 rounded-lg bg-gradient-to-r ${selectedSession.color}`}>
-                    <selectedSession.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <h2 className="text-3xl font-bold text-slate-900">
-                    {selectedSession.title}
-                  </h2>
-                </div>
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">
+                  Set Up Your {selectedSessionType.title} Session
+                </h2>
                 <p className="text-lg text-slate-600">
-                  {selectedSession.description}
+                  Tell us about the role you're preparing for
                 </p>
               </div>
 
@@ -904,7 +1007,7 @@ const InterviewCoachPage = () => {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      What role are you practicing for? *
+                      What role are you interviewing for? *
                     </label>
                     <div className="relative">
                       <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -937,23 +1040,6 @@ const InterviewCoachPage = () => {
 
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Number of questions
-                    </label>
-                    <select
-                      value={interviewSetup.questionCount}
-                      onChange={(e) => setInterviewSetup(prev => ({ ...prev, questionCount: parseInt(e.target.value) }))}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      <option value={4}>4 questions (Quick practice)</option>
-                      <option value={6}>6 questions (Standard)</option>
-                      <option value={8}>8 questions (Comprehensive)</option>
-                      <option value={10}>10 questions (Thorough)</option>
-                      <option value={12}>12 questions (Extensive)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Additional context (optional)
                     </label>
                     <textarea
@@ -969,14 +1055,14 @@ const InterviewCoachPage = () => {
                     <div className="flex items-start space-x-3">
                       <Volume2 className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div className="text-sm text-blue-800">
-                        <p className="font-semibold mb-1">Conversational Experience</p>
-                        <p>This session will feel like talking to a real interviewer:</p>
+                        <p className="font-semibold mb-1">Natural Conversation Experience</p>
+                        <p>This session will feel like talking to a real interview coach:</p>
                         <ul className="list-disc list-inside mt-2 space-y-1">
-                          <li>Questions are spoken aloud using AI voice</li>
-                          <li>Speak naturally - we automatically detect when you're done</li>
-                          <li>The coach may ask follow-up questions for deeper insights</li>
-                          <li>You can interrupt the coach by simply starting to speak</li>
-                          <li>Get real-time feedback and coaching tips</li>
+                          <li>Questions read by South African AI voice</li>
+                          <li>Speak naturally - we'll detect when you're done</li>
+                          <li>No clicking required during the session</li>
+                          <li>Real-time feedback and follow-up questions</li>
+                          <li>Detailed speech and content analysis</li>
                         </ul>
                         <label className="flex items-center space-x-2 mt-3">
                           <input
@@ -985,7 +1071,7 @@ const InterviewCoachPage = () => {
                             onChange={(e) => setAudioEnabled(e.target.checked)}
                             className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
                           />
-                          <span>Enable voice features</span>
+                          <span>Enable audio features</span>
                         </label>
                       </div>
                     </div>
@@ -997,33 +1083,31 @@ const InterviewCoachPage = () => {
                         <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                         <div className="text-sm text-yellow-800">
                           <p className="font-semibold mb-1">Speech Recognition Not Supported</p>
-                          <p>Your browser doesn't support speech recognition. The session will still work, but you'll need to manually indicate when you're done speaking.</p>
+                          <p>Your browser doesn't support speech recognition. You can still type your responses.</p>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="mt-8 flex justify-between">
+                <div className="mt-8 flex justify-center space-x-4">
                   <button
-                    onClick={() => setCurrentStep('selection')}
-                    className="flex items-center space-x-2 px-6 py-3 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors"
+                    onClick={() => setCurrentStep('tips')}
+                    className="px-6 py-3 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
                   >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
+                    Back to Tips
                   </button>
-                  
                   <button
                     onClick={generateQuestions}
                     disabled={!interviewSetup.role.trim() || isLoadingQuestions}
-                    className="flex items-center space-x-2 px-8 py-3 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center space-x-2 px-8 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoadingQuestions ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <Play className="w-5 h-5" />
                     )}
-                    <span>{isLoadingQuestions ? 'Preparing Session...' : 'Start Coaching'}</span>
+                    <span>{isLoadingQuestions ? 'Preparing Session...' : 'Start Practice'}</span>
                   </button>
                 </div>
               </div>
@@ -1043,25 +1127,22 @@ const InterviewCoachPage = () => {
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center space-x-2 bg-purple-100 text-purple-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
                     <MessageSquare className="w-4 h-4" />
-                    <span>
-                      {isWaitingForFollowUp ? 'Follow-up Question' : 
-                       `${currentQuestion.type?.charAt(0).toUpperCase()}${currentQuestion.type?.slice(1)} Question`}
-                    </span>
+                    <span>{currentQuestion.type.charAt(0).toUpperCase() + currentQuestion.type.slice(1)} Question</span>
                   </div>
                   <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                    {isWaitingForFollowUp ? 'Follow-up' : `Question ${currentQuestionIndex + 1} of ${questions.length}`}
+                    Question {currentQuestionIndex + 1} of {questions.length}
                   </h2>
                 </div>
 
                 <div className="bg-slate-50 rounded-lg p-6 mb-6">
                   <div className="flex items-start justify-between mb-4">
                     <p className="text-lg text-slate-800 leading-relaxed flex-1">
-                      {currentQuestion.question}
+                      {pendingFollowUp || currentQuestion.question}
                     </p>
                     <div className="flex items-center space-x-2 ml-4">
                       {audioEnabled && (
                         <button
-                          onClick={() => isPlayingQuestion ? stopAudio() : playQuestionAndStartListening(currentQuestion.question)}
+                          onClick={() => isPlayingQuestion ? stopAudio() : playQuestionAndStartListening(pendingFollowUp || currentQuestion.question)}
                           className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                         >
                           {isPlayingQuestion ? (
@@ -1074,7 +1155,7 @@ const InterviewCoachPage = () => {
                     </div>
                   </div>
                   
-                  {!isWaitingForFollowUp && currentQuestion.keyPoints && currentQuestion.keyPoints.length > 0 && (
+                  {!pendingFollowUp && currentQuestion.keyPoints.length > 0 && (
                     <div className="text-sm text-slate-600">
                       <p className="font-medium mb-2">Key points to consider:</p>
                       <ul className="list-disc list-inside space-y-1">
@@ -1091,22 +1172,24 @@ const InterviewCoachPage = () => {
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-slate-900">Your Response</h3>
                     <div className="flex items-center space-x-2">
-                      {speechSupported && !isAnalyzing && !isGeneratingFollowUp && (
-                        <div className="flex items-center space-x-2">
-                          {isListening ? (
-                            <div className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-800 rounded-lg">
-                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                              <span className="text-sm font-medium">Listening...</span>
-                            </div>
-                          ) : !isPlayingQuestion && (
-                            <button
-                              onClick={startListeningFlow}
-                              className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                            >
-                              <Mic className="w-4 h-4" />
-                              <span>Start Speaking</span>
-                            </button>
-                          )}
+                      {isAnalyzing && (
+                        <div className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                          <span className="text-sm font-medium">Analyzing...</span>
+                        </div>
+                      )}
+                      
+                      {isGeneratingFollowUp && (
+                        <div className="flex items-center space-x-2 px-3 py-2 bg-orange-100 text-orange-800 rounded-lg">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                          <span className="text-sm font-medium">Preparing follow-up...</span>
+                        </div>
+                      )}
+                      
+                      {isListening && !isAnalyzing && !isGeneratingFollowUp && (
+                        <div className="flex items-center space-x-2 px-3 py-2 bg-green-100 text-green-800 rounded-lg">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                          <span className="text-sm font-medium">Listening...</span>
                         </div>
                       )}
                     </div>
@@ -1117,20 +1200,9 @@ const InterviewCoachPage = () => {
                       rows={6}
                       value={transcript}
                       readOnly
-                      placeholder={speechSupported ? "Start speaking to see your response here..." : "Your response will appear here..."}
+                      placeholder={speechSupported ? "Start speaking to see your response here..." : "Type your response here..."}
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none bg-slate-50"
                     />
-                    
-                    {(isAnalyzing || isGeneratingFollowUp) && (
-                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-5 h-5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
-                          <span className="text-purple-600 font-medium">
-                            {isAnalyzing ? 'Analyzing your response...' : 'Preparing follow-up question...'}
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {speechError && (
@@ -1140,17 +1212,10 @@ const InterviewCoachPage = () => {
                     </div>
                   )}
 
-                  {isWaitingForResponse && isListening && (
+                  {isWaitingForResponse && isListening && !isAnalyzing && (
                     <div className="text-blue-600 text-sm flex items-center space-x-2">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                      <span>We'll automatically continue when you finish speaking...</span>
-                    </div>
-                  )}
-
-                  {isPlayingQuestion && canInterrupt && (
-                    <div className="text-green-600 text-sm flex items-center space-x-2">
-                      <Mic className="w-4 h-4" />
-                      <span>You can interrupt by starting to speak...</span>
+                      <span>I'll automatically move to the next question when you finish speaking...</span>
                     </div>
                   )}
 
@@ -1163,14 +1228,10 @@ const InterviewCoachPage = () => {
 
                 <div className="mt-6 flex justify-between items-center">
                   <div className="text-sm text-slate-500">
-                    {!isWaitingForFollowUp && currentQuestion.expectedDuration && (
-                      <>Expected duration: ~{Math.floor(currentQuestion.expectedDuration / 60)} minutes</>
-                    )}
+                    Expected duration: ~{Math.floor(currentQuestion.expectedDuration / 60)} minutes
                   </div>
                   <div className="text-sm text-slate-600">
-                    {isWaitingForFollowUp ? 'Follow-up question' : 
-                     currentQuestionIndex === questions.length - 1 ? 'Final question' : 
-                     `${questions.length - currentQuestionIndex - 1} questions remaining`}
+                    {currentQuestionIndex === questions.length - 1 ? 'Final question' : `${questions.length - currentQuestionIndex - 1} questions remaining`}
                   </div>
                 </div>
               </div>
@@ -1414,4 +1475,4 @@ const InterviewCoachPage = () => {
   );
 };
 
-export default InterviewCoachPage;
+export default InterviewPracticePage;
