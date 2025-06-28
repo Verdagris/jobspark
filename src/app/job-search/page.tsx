@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -129,7 +130,12 @@ const applySorting = (jobs: any[], sortOption: string) => {
 
 const JobSearchPage = () => {
   const { user } = useAuth();
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const searchParams = useSearchParams();
+  
+  // Get filter from URL params
+  const urlFilter = searchParams?.get('filter') || 'all';
+  
+  const [selectedFilter, setSelectedFilter] = useState(urlFilter);
   const [searchTerm, setSearchTerm] = useState("");
   const [jobs, setJobs] = useState<any[]>([]);
   const [savedJobs, setSavedJobs] = useState<any[]>([]);
@@ -159,6 +165,12 @@ const JobSearchPage = () => {
     { label: "R80,000+", value: 80000 },
     { label: "R100,000+", value: 100000 },
   ];
+
+  // Update filter when URL changes
+  useEffect(() => {
+    const newFilter = searchParams?.get('filter') || 'all';
+    setSelectedFilter(newFilter);
+  }, [searchParams]);
 
   // Load user CV data and saved jobs
   useEffect(() => {
