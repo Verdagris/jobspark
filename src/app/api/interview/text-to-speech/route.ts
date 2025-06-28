@@ -15,7 +15,54 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { text, voiceId = 'EXAVITQu4vr4xnSDxMaL' }: { text: string; voiceId?: string } = await request.json();
+    const { text, voiceId = 'onwK4e9ZLuTAKqWW03F9', messageType = 'question' }: { 
+      text: string; 
+      voiceId?: string;
+      messageType?: 'question' | 'encouragement' | 'feedback' | 'summary';
+    } = await request.json();
+
+    // Adjust voice settings based on message type
+    let voiceSettings = {
+      stability: 0.5,
+      similarity_boost: 0.5,
+      style: 0.0,
+      use_speaker_boost: true,
+    };
+
+    // Customize voice for different message types
+    switch (messageType) {
+      case 'encouragement':
+        voiceSettings = {
+          stability: 0.6,
+          similarity_boost: 0.7,
+          style: 0.2, // More expressive for encouragement
+          use_speaker_boost: true,
+        };
+        break;
+      case 'feedback':
+        voiceSettings = {
+          stability: 0.7,
+          similarity_boost: 0.6,
+          style: 0.1, // Slightly more professional
+          use_speaker_boost: true,
+        };
+        break;
+      case 'summary':
+        voiceSettings = {
+          stability: 0.8,
+          similarity_boost: 0.5,
+          style: 0.0, // Very stable for longer content
+          use_speaker_boost: true,
+        };
+        break;
+      default: // question
+        voiceSettings = {
+          stability: 0.5,
+          similarity_boost: 0.5,
+          style: 0.0,
+          use_speaker_boost: true,
+        };
+    }
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -27,12 +74,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         text,
         model_id: 'eleven_monolingual_v1',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
-          style: 0.0,
-          use_speaker_boost: true,
-        },
+        voice_settings: voiceSettings,
       }),
     });
 

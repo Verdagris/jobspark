@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -12,12 +12,23 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, redirectTo = '/auth' }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
+    // Only set redirect flag after loading is complete and we're sure there's no user
     if (!loading && !user) {
+      setShouldRedirect(true);
+    } else if (!loading && user) {
+      setShouldRedirect(false);
+    }
+  }, [user, loading]);
+
+  useEffect(() => {
+    // Only redirect if we've determined we should and we're not already on the redirect page
+    if (shouldRedirect && typeof window !== 'undefined' && window.location.pathname !== redirectTo) {
       router.push(redirectTo);
     }
-  }, [user, loading, router, redirectTo]);
+  }, [shouldRedirect, router, redirectTo]);
 
   if (loading) {
     return (
@@ -30,7 +41,7 @@ export const ProtectedRoute = ({ children, redirectTo = '/auth' }: ProtectedRout
     );
   }
 
-  if (!user) {
+  if (!user && shouldRedirect) {
     return null;
   }
 

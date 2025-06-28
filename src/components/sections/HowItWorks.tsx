@@ -2,7 +2,7 @@
 
 import { motion, useScroll, useTransform, Variants } from "framer-motion";
 import { UserPlus, PencilRuler, Send, ArrowRight } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 
 const steps = [
   {
@@ -134,12 +134,17 @@ const TimelineStep = ({ step, index }: { step: any, index: number }) => {
 
 export const HowItWorks = () => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start center", "end center"],
   });
   
   const timelineHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <section id="how-it-works" className="py-16 sm:py-20 lg:py-24 bg-slate-50">
@@ -169,7 +174,7 @@ export const HowItWorks = () => {
         <div ref={containerRef} className="hidden lg:block relative max-w-4xl mx-auto">
             <div className="absolute left-1/2 -translate-x-1/2 top-6 bottom-6 w-1 bg-slate-200" />
             <motion.div 
-                style={{ height: timelineHeight }}
+                style={{ height: isClient ? timelineHeight : "0%" }}
                 className="absolute left-1/2 -translate-x-1/2 top-6 w-1 bg-gradient-to-b from-sky-500 to-blue-500" 
             />
             

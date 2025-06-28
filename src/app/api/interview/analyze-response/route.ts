@@ -235,11 +235,11 @@ function generateSpeechCoaching(
   
   // Speaking pace coaching
   if (speakingPace < 120) {
-    coaching.push("🎯 **Speaking Pace**: You're speaking quite slowly (${speakingPace} WPM). Try to increase your pace to 120-150 WPM to sound more confident and engaging.");
+    coaching.push(`🎯 **Speaking Pace**: You're speaking quite slowly (${speakingPace} WPM). Try to increase your pace to 120-150 WPM to sound more confident and engaging.`);
   } else if (speakingPace > 180) {
-    coaching.push("🎯 **Speaking Pace**: You're speaking very quickly (${speakingPace} WPM). Slow down to 120-150 WPM to ensure clarity and give the interviewer time to process your points.");
+    coaching.push(`🎯 **Speaking Pace**: You're speaking very quickly (${speakingPace} WPM). Slow down to 120-150 WPM to ensure clarity and give the interviewer time to process your points.`);
   } else {
-    coaching.push("✅ **Speaking Pace**: Excellent pace (${speakingPace} WPM) - you're speaking at an ideal rate for interviews.");
+    coaching.push(`✅ **Speaking Pace**: Excellent pace (${speakingPace} WPM) - you're speaking at an ideal rate for interviews.`);
   }
   
   // Filler words coaching
@@ -306,7 +306,9 @@ export async function POST(request: NextRequest) {
       keyPoints,
       role,
       experienceYears,
-      duration
+      duration,
+      sessionType,
+      isFollowUp = false
     }: {
       question: string;
       response: string;
@@ -315,6 +317,8 @@ export async function POST(request: NextRequest) {
       role: string;
       experienceYears: number;
       duration: number;
+      sessionType?: string;
+      isFollowUp?: boolean;
     } = await request.json();
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -340,6 +344,13 @@ export async function POST(request: NextRequest) {
       duration
     );
 
+    // Adjust prompt based on session type and whether it's a follow-up
+    const sessionContext = sessionType ? `
+**Session Type:** ${sessionType}
+**Session Focus:** This is a ${sessionType.replace('-', ' ')} coaching session.
+${isFollowUp ? '**Follow-up Question:** This is a follow-up to probe deeper into the candidate\'s response.' : ''}
+` : '';
+
     const prompt = `
 You are an expert interview coach analyzing a candidate's response to an interview question. Focus on content quality, relevance, and structure.
 
@@ -347,6 +358,7 @@ You are an expert interview coach analyzing a candidate's response to an intervi
 - Role: ${role}
 - Experience Level: ${experienceYears} years
 - Question Type: ${questionType}
+${sessionContext}
 
 **Question Asked:**
 "${question}"
@@ -367,13 +379,17 @@ ${keyPoints.map(point => `- ${point}`).join('\n')}
 - Confidence Score: ${confidenceAnalysis.score}/100
 - Sentiment: ${sentiment.sentiment}
 
+${sessionType && sessionType !== 'mock-interview' ? `
+**Coaching Context:** This is a focused coaching session. Provide immediate, actionable feedback that helps the candidate improve their response. Be encouraging but specific about areas for improvement.
+` : ''}
+
 Analyze this response and provide feedback in the following JSON format:
 
 {
   "score": 85,
   "strengths": ["Clear communication", "Relevant examples"],
   "improvements": ["Could provide more specific metrics", "Should elaborate on outcomes"],
-  "feedback": "Your response demonstrated good understanding of the role requirements...",
+  "feedback": "${sessionType && sessionType !== 'mock-interview' ? 'Your response showed good understanding... Here\'s how you can strengthen it...' : 'Your response demonstrated good understanding of the role requirements...'}",
   "contentAnalysis": {
     "relevance": 90,
     "structure": 85,
