@@ -22,11 +22,16 @@ import {
   Award,
   Zap,
   ChevronDown,
-  X
+  X,
+  Plus,
+  Play,
+  CheckCircle,
+  AlertTriangle,
+  MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { getUserProfile, getUserExperiences, getUserSkills } from "@/lib/database";
+import { getUserProfile, getUserExperiences, getUserSkills, getUserSavedJobs, createSavedJob, updateSavedJob, deleteSavedJob, markJobAsApplied } from "@/lib/database";
 
 const timeAgo = (dateString: string) => {
   const date = new Date(dateString);
@@ -78,9 +83,12 @@ const calculateJobRelevance = (job: any, userSkills: string[], userExperiences: 
 };
 
 // Helper functions for filtering and sorting
-const applyMainFilter = (jobs: any[], selectedFilter: string, savedJobs: Set<number>) => {
+const applyMainFilter = (jobs: any[], selectedFilter: string, savedJobs: any[]) => {
+  const savedJobIds = new Set(savedJobs.map(job => job.id));
+  
   return jobs.filter(job => {
-    if (selectedFilter === "saved") return savedJobs.has(job.id);
+    if (selectedFilter === "saved") return savedJobIds.has(job.id) || job.isSaved;
+    if (selectedFilter === "applied") return savedJobs.find(sj => sj.id === job.id)?.is_applied || job.isApplied;
     if (selectedFilter === "recommended") return job.match >= 85;
     if (selectedFilter === "recent") return job.posted.includes("days ago") || job.posted.includes("hours ago") || job.posted.includes("minutes ago") || job.posted.includes("seconds ago");
     return true;
@@ -119,12 +127,12 @@ const applySorting = (jobs: any[], sortOption: string) => {
   return sortedJobs;
 };
 
-const JobMatchesPage = () => {
+const JobSearchPage = () => {
   const { user } = useAuth();
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [savedJobs, setSavedJobs] = useState(new Set<number>([1, 3])); // Pre-saved some jobs
   const [jobs, setJobs] = useState<any[]>([]);
+  const [savedJobs, setSavedJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedJobTypes, setSelectedJobTypes] = useState(new Set<string>());
@@ -132,6 +140,7 @@ const JobMatchesPage = () => {
   const [minSalary, setMinSalary] = useState(0);
   const [sortOption, setSortOption] = useState("match");
   const [showFilters, setShowFilters] = useState(false);
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
   const [userSkills, setUserSkills] = useState<string[]>([]);
   const [userExperiences, setUserExperiences] = useState<any[]>([]);
 
@@ -151,19 +160,21 @@ const JobMatchesPage = () => {
     { label: "R100,000+", value: 100000 },
   ];
 
-  // Load user CV data for job matching
+  // Load user CV data and saved jobs
   useEffect(() => {
     const loadUserData = async () => {
       if (!user) return;
       
       try {
-        const [experiences, skills] = await Promise.all([
+        const [experiences, skills, userSavedJobs] = await Promise.all([
           getUserExperiences(user.id),
-          getUserSkills(user.id)
+          getUserSkills(user.id),
+          getUserSavedJobs(user.id)
         ]);
         
         setUserExperiences(experiences);
         setUserSkills(skills.map(skill => skill.name));
+        setSavedJobs(userSavedJobs);
       } catch (error) {
         console.error('Error loading user data:', error);
       }
@@ -304,12 +315,19 @@ const JobMatchesPage = () => {
         ];
 
         // Calculate relevance scores based on user's CV
-        const jobsWithRelevance = jobTemplates.map(job => ({
-          ...job,
-          posted: timeAgo(job.created),
-          salary: `R${job.salary_min.toLocaleString()} - R${job.salary_max.toLocaleString()}`,
-          match: calculateJobRelevance(job, userSkills, userExperiences)
-        }));
+        const jobsWithRelevance = jobTemplates.map(job => {
+          const savedJob = savedJobs.find(sj => sj.title === job.title && sj.company === job.company);
+          return {
+            ...job,
+            posted: timeAgo(job.created),
+            salary: `R${job.salary_min.toLocaleString()} - R${job.salary_max.toLocaleString()}`,
+            match: calculateJobRelevance(job, userSkills, userExperiences),
+            isSaved: !!savedJob,
+            savedJobId: savedJob?.id,
+            isApplied: savedJob?.is_applied || false,
+            practiceCount: savedJob?.practice_count || 0
+          };
+        });
 
         // Sort by relevance initially
         jobsWithRelevance.sort((a, b) => b.match - a.match);
@@ -324,18 +342,103 @@ const JobMatchesPage = () => {
 
     // Add a small delay to show loading state
     setTimeout(generateRelevantJobs, 1000);
-  }, [userSkills, userExperiences]);
+  }, [userSkills, userExperiences, savedJobs]);
 
-  const toggleSaveJob = (jobId: number) => {
-    setSavedJobs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(jobId)) {
-        newSet.delete(jobId);
+  const handleSaveJob = async (job: any) => {
+    if (!user) return;
+    
+    try {
+      if (job.isSaved) {
+        // Unsave job
+        await deleteSavedJob(job.savedJobId);
+        setSavedJobs(prev => prev.filter(sj => sj.id !== job.savedJobId));
+        setJobs(prev => prev.map(j => 
+          j.id === job.id 
+            ? { ...j, isSaved: false, savedJobId: null, isApplied: false, practiceCount: 0 }
+            : j
+        ));
       } else {
-        newSet.add(jobId);
+        // Save job
+        const savedJob = await createSavedJob({
+          user_id: user.id,
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          salary_min: job.salary_min,
+          salary_max: job.salary_max,
+          description: job.description,
+          requirements: job.requirements,
+          benefits: job.benefits,
+          job_type: job.type,
+          url: job.url,
+          logo: job.logo,
+          is_applied: false,
+          applied_at: null,
+          source: 'platform'
+        });
+        
+        setSavedJobs(prev => [...prev, savedJob]);
+        setJobs(prev => prev.map(j => 
+          j.id === job.id 
+            ? { ...j, isSaved: true, savedJobId: savedJob.id, practiceCount: 0 }
+            : j
+        ));
       }
-      return newSet;
-    });
+    } catch (error) {
+      console.error('Error saving/unsaving job:', error);
+      alert('Failed to save job. Please try again.');
+    }
+  };
+
+  const handlePracticeNow = (job: any) => {
+    if (!job.isSaved) {
+      alert('Please save this job first to practice for it.');
+      return;
+    }
+    
+    // Navigate to interview practice with job context
+    const practiceUrl = `/interview-practice?jobId=${job.savedJobId}&role=${encodeURIComponent(job.title)}&company=${encodeURIComponent(job.company)}`;
+    window.location.href = practiceUrl;
+  };
+
+  const handleApplyNow = async (job: any) => {
+    if (!job.isSaved) {
+      const shouldSave = confirm('Would you like to save this job first so you can track your application and practice for it?');
+      if (shouldSave) {
+        await handleSaveJob(job);
+        return;
+      }
+    }
+    
+    if (job.practiceCount === 0) {
+      const shouldPractice = confirm("Are you sure? You haven't practiced for this role yet. We recommend practicing at least once before applying.");
+      if (!shouldPractice) return;
+    } else if (job.practiceCount < 3) {
+      const shouldPractice = confirm(`You've only practiced ${job.practiceCount} time${job.practiceCount > 1 ? 's' : ''} for this role. Consider practicing more to improve your chances.`);
+      if (!shouldPractice) return;
+    }
+    
+    // Mark as applied if saved
+    if (job.isSaved) {
+      try {
+        await markJobAsApplied(job.savedJobId);
+        setSavedJobs(prev => prev.map(sj => 
+          sj.id === job.savedJobId 
+            ? { ...sj, is_applied: true, applied_at: new Date().toISOString() }
+            : sj
+        ));
+        setJobs(prev => prev.map(j => 
+          j.id === job.id 
+            ? { ...j, isApplied: true }
+            : j
+        ));
+      } catch (error) {
+        console.error('Error marking job as applied:', error);
+      }
+    }
+    
+    // Open the company's career page in a new tab
+    window.open(job.url, '_blank');
   };
 
   const handleJobTypeChange = (type: string) => {
@@ -357,16 +460,6 @@ const JobMatchesPage = () => {
     setSearchTerm("");
   };
 
-  const handleApplyNow = (job: any) => {
-    // Open the company's career page in a new tab
-    window.open(job.url, '_blank');
-  };
-
-  const handleLearnMore = (job: any) => {
-    // For now, just scroll to the job details or show more info
-    alert(`Learn more about ${job.title} at ${job.company}\n\nThis would typically show more detailed job information, company culture, interview process, etc.`);
-  };
-
   const filteredJobs = useMemo(() => {
     let currentJobs = applyMainFilter(jobs, selectedFilter, savedJobs);
     currentJobs = applySearchFilter(currentJobs, searchTerm);
@@ -381,7 +474,8 @@ const JobMatchesPage = () => {
     { id: "all", label: "All Jobs", count: jobs.length },
     { id: "recommended", label: "Recommended", count: jobs.filter(j => j.match >= 85).length },
     { id: "recent", label: "Recent", count: jobs.filter(j => j.posted.includes("days ago") || j.posted.includes("hours ago")).length },
-    { id: "saved", label: "Saved", count: savedJobs.size }
+    { id: "saved", label: "Saved", count: savedJobs.length },
+    { id: "applied", label: "Applied", count: savedJobs.filter(j => j.is_applied).length }
   ];
 
   if (loading) {
@@ -404,8 +498,8 @@ const JobMatchesPage = () => {
                     <Briefcase className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold text-slate-900">Job Matches</h1>
-                    <p className="text-sm text-slate-600">AI-powered job recommendations</p>
+                    <h1 className="text-xl font-bold text-slate-900">Job Search</h1>
+                    <p className="text-sm text-slate-600">Find and prepare for your dream job</p>
                   </div>
                 </div>
               </div>
@@ -467,8 +561,8 @@ const JobMatchesPage = () => {
                   <Briefcase className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900">Job Matches</h1>
-                  <p className="text-sm text-slate-600">AI-powered job recommendations</p>
+                  <h1 className="text-xl font-bold text-slate-900">Job Search</h1>
+                  <p className="text-sm text-slate-600">Find and prepare for your dream job</p>
                 </div>
               </div>
             </div>
@@ -491,6 +585,13 @@ const JobMatchesPage = () => {
                 <Filter className="w-4 h-4" />
                 <span>Filters</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              </button>
+              <button 
+                onClick={() => setShowAddJobModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Job</span>
               </button>
             </div>
           </div>
@@ -615,16 +716,16 @@ const JobMatchesPage = () => {
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Profile Views</span>
-                    <span className="font-semibold text-slate-900">127</span>
+                    <span className="text-slate-600">Saved Jobs</span>
+                    <span className="font-semibold text-slate-900">{savedJobs.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Applications</span>
-                    <span className="font-semibold text-slate-900">12</span>
+                    <span className="font-semibold text-slate-900">{savedJobs.filter(j => j.is_applied).length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Response Rate</span>
-                    <span className="font-semibold text-green-600">25%</span>
+                    <span className="text-slate-600">Practice Sessions</span>
+                    <span className="font-semibold text-green-600">{savedJobs.reduce((sum, job) => sum + job.practice_count, 0)}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Match Score</span>
@@ -646,7 +747,8 @@ const JobMatchesPage = () => {
                   <span>
                     {selectedFilter === "all" ? "All Job Matches" : 
                      selectedFilter === "recommended" ? "Recommended for You" :
-                     selectedFilter === "recent" ? "Recent Postings" : "Saved Jobs"}
+                     selectedFilter === "recent" ? "Recent Postings" : 
+                     selectedFilter === "saved" ? "Saved Jobs" : "Applied Jobs"}
                   </span>
                 </h2>
                 <p className="text-slate-600 mt-1">
@@ -677,6 +779,11 @@ const JobMatchesPage = () => {
                             <Star className="w-3 h-3 text-white fill-current" />
                           </div>
                         )}
+                        {job.isApplied && (
+                          <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <CheckCircle className="w-3 h-3 text-white" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1">
                         <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-green-600 transition-colors">
@@ -704,6 +811,14 @@ const JobMatchesPage = () => {
                           <span className="text-sm text-slate-600 bg-slate-100 px-2 py-1 rounded-full">
                             {job.type}
                           </span>
+                          {job.isApplied && (
+                            <>
+                              <span className="text-slate-400">•</span>
+                              <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full font-medium">
+                                Applied
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -725,12 +840,18 @@ const JobMatchesPage = () => {
                             style={{ width: `${job.match}%` }}
                           />
                         </div>
+                        {job.isSaved && job.practiceCount > 0 && (
+                          <div className="text-xs text-purple-600 mt-1 flex items-center space-x-1">
+                            <MessageSquare className="w-3 h-3" />
+                            <span>{job.practiceCount} practice{job.practiceCount > 1 ? 's' : ''}</span>
+                          </div>
+                        )}
                       </div>
                       <button
-                        onClick={() => toggleSaveJob(job.id)}
+                        onClick={() => handleSaveJob(job)}
                         className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                       >
-                        {savedJobs.has(job.id) ? (
+                        {job.isSaved ? (
                           <BookmarkCheck className="w-5 h-5 text-green-500" />
                         ) : (
                           <Bookmark className="w-5 h-5 text-slate-400" />
@@ -789,20 +910,47 @@ const JobMatchesPage = () => {
                           <span className="font-medium">Great match!</span>
                         </div>
                       )}
+                      {job.isSaved && job.practiceCount === 0 && !job.isApplied && (
+                        <div className="flex items-center space-x-1 text-orange-600">
+                          <AlertTriangle className="w-4 h-4" />
+                          <span className="font-medium">Practice recommended</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex space-x-3">
                       <button 
-                        onClick={() => handleLearnMore(job)}
-                        className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+                        onClick={() => handleApplyNow(job)}
+                        className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors text-sm"
                       >
-                        Learn More
+                        Apply
                       </button>
                       <button 
-                        onClick={() => handleApplyNow(job)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl"
+                        onClick={() => handlePracticeNow(job)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all shadow-lg hover:shadow-xl"
+                        disabled={!job.isSaved}
                       >
-                        <span>Apply Now</span>
-                        <ExternalLink className="w-4 h-4" />
+                        <Play className="w-4 h-4" />
+                        <span>Practice Now</span>
+                      </button>
+                      <button 
+                        onClick={() => handleSaveJob(job)}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-xl ${
+                          job.isSaved 
+                            ? 'bg-green-500 text-white hover:bg-green-600' 
+                            : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600'
+                        }`}
+                      >
+                        {job.isSaved ? (
+                          <>
+                            <BookmarkCheck className="w-4 h-4" />
+                            <span>Saved</span>
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="w-4 h-4" />
+                            <span>Save</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -832,4 +980,4 @@ const JobMatchesPage = () => {
   );
 };
 
-export default JobMatchesPage;
+export default JobSearchPage;
