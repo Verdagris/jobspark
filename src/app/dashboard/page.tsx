@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { 
   getUserProfile, 
   getUserExperiences, 
+  getUserEducation,
   getUserSkills, 
   getUserCVs,
   getUserInterviewSessions,
@@ -110,9 +111,10 @@ const DashboardPage = () => {
     if (!user) return;
     
     try {
-      const [profile, experiences, skills, cvs, interviewSessions, progress] = await Promise.all([
+      const [profile, experiences, education, skills, cvs, interviewSessions, progress] = await Promise.all([
         getUserProfile(user.id),
         getUserExperiences(user.id),
+        getUserEducation(user.id),
         getUserSkills(user.id),
         getUserCVs(user.id),
         getUserInterviewSessions(user.id),
@@ -122,8 +124,8 @@ const DashboardPage = () => {
       // Calculate profile completion
       const profileCompletion = calculateProfileCompletion(profile, experiences, skills);
       
-      // Use consistent career score calculation
-      const careerScore = calculateCareerScore(profile, experiences, skills, cvs, interviewSessions);
+      // Use consistent career score calculation with education parameter
+      const careerScore = calculateCareerScore(profile, experiences, skills, cvs, interviewSessions, education);
       
       // Get recent activity with more details
       const recentActivity = getEnhancedRecentActivity(experiences, cvs, interviewSessions);
@@ -144,6 +146,7 @@ const DashboardPage = () => {
       setDashboardData({
         profile,
         experiences,
+        education,
         skills,
         cvs,
         interviewSessions,

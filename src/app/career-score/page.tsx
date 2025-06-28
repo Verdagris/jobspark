@@ -67,8 +67,8 @@ const CareerScorePage = () => {
           getUserProgress(user.id)
         ]);
 
-        // Use the SAME calculation function as dashboard
-        const overall = calculateCareerScore(profile, experiences, skills, cvs, interviewSessions);
+        // Use the SAME calculation function as dashboard with education parameter
+        const overall = calculateCareerScore(profile, experiences, skills, cvs, interviewSessions, education);
         
         // Calculate individual component scores for breakdown
         const profileScore = calculateProfileScore(profile, experiences, education, skills);

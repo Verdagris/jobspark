@@ -635,7 +635,8 @@ export function calculateCareerScore(
   experiences: any[], 
   skills: any[], 
   cvs: any[], 
-  interviewSessions: any[]
+  interviewSessions: any[],
+  education: any[] = []
 ): number {
   let score = 0;
   
