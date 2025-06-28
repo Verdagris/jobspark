@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -9,7 +9,10 @@ import {
   getUserExperiences, 
   getUserSkills, 
   getUserCVs,
-  getUserInterviewSessions 
+  getUserInterviewSessions,
+  getUserProgress,
+  getEncouragementMessage,
+  getSessionRecommendations
 } from "@/lib/database";
 import { 
   Sparkles, 
@@ -33,15 +36,17 @@ import {
   Star,
   Activity,
   X,
-  Volume2,
-  VolumeX,
-  Moon,
-  Sun,
   Shield,
-  HelpCircle,
   Mail,
-  Phone,
-  MapPin
+  ArrowRight,
+  Plus,
+  TrendingDown,
+  Users,
+  MapPin,
+  Building2,
+  Flame,
+  Trophy,
+  BookOpen
 } from "lucide-react";
 import Link from "next/link";
 
@@ -51,17 +56,18 @@ const DashboardPage = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [redirecting, setRedirecting] = useState(false);
+  const [encouragementMessage, setEncouragementMessage] = useState("");
+  const [recommendations, setRecommendations] = useState<any>(null);
   
   // UI state
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const checkOnboarding = async () => {
-      if (loading) return; // Wait for auth to finish loading
+      if (loading) return;
       
       if (!user) {
         if (!redirecting) {
@@ -85,7 +91,6 @@ const DashboardPage = () => {
         await loadDashboardData();
       } catch (error) {
         console.error('Error checking profile:', error);
-        // If profile doesn't exist, redirect to onboarding
         if (!redirecting) {
           setRedirecting(true);
           router.push('/onboarding');
@@ -103,28 +108,34 @@ const DashboardPage = () => {
     if (!user) return;
     
     try {
-      const [profile, experiences, skills, cvs, interviewSessions] = await Promise.all([
+      const [profile, experiences, skills, cvs, interviewSessions, progress] = await Promise.all([
         getUserProfile(user.id),
         getUserExperiences(user.id),
         getUserSkills(user.id),
         getUserCVs(user.id),
-        getUserInterviewSessions(user.id)
+        getUserInterviewSessions(user.id),
+        getUserProgress(user.id)
       ]);
 
       // Calculate profile completion
       const profileCompletion = calculateProfileCompletion(profile, experiences, skills);
       
-      // Calculate career score
+      // Calculate career score (consistent with career score page)
       const careerScore = calculateCareerScore(profile, experiences, skills, cvs, interviewSessions);
       
-      // Get recent activity
-      const recentActivity = getRecentActivity(experiences, cvs, interviewSessions);
+      // Get recent activity with more details
+      const recentActivity = getEnhancedRecentActivity(experiences, cvs, interviewSessions);
+      
+      // Generate notifications based on user activity
+      const userNotifications = generateUserNotifications(profile, progress, interviewSessions, cvs);
+      setNotifications(userNotifications);
+      setUnreadCount(userNotifications.filter(n => !n.read).length);
       
       // Calculate stats
       const stats = {
         profileCompletion,
-        applicationsSent: Math.floor(Math.random() * 20) + 5, // Simulated
-        interviewInvites: Math.floor(Math.random() * 5) + 1, // Simulated
+        applicationsSent: Math.floor(Math.random() * 20) + 5,
+        interviewInvites: Math.floor(Math.random() * 5) + 1,
         careerScore
       };
 
@@ -134,9 +145,20 @@ const DashboardPage = () => {
         skills,
         cvs,
         interviewSessions,
+        progress,
         stats,
         recentActivity
       });
+
+      // Load encouragement and recommendations
+      const [encouragement, recs] = await Promise.all([
+        getEncouragementMessage(user.id),
+        getSessionRecommendations(user.id)
+      ]);
+      
+      setEncouragementMessage(encouragement);
+      setRecommendations(recs);
+      
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }
@@ -189,18 +211,22 @@ const DashboardPage = () => {
     return Math.round(score);
   };
 
-  const getRecentActivity = (experiences: any[], cvs: any[], sessions: any[]) => {
+  const getEnhancedRecentActivity = (experiences: any[], cvs: any[], sessions: any[]) => {
     const activities = [];
     
-    // Add recent experiences
-    experiences.slice(0, 2).forEach(exp => {
+    // Add recent interview sessions with detailed info
+    sessions.slice(0, 3).forEach(session => {
+      const improvement = session.overall_score >= 80 ? 'excellent' : session.overall_score >= 70 ? 'good' : 'needs-work';
       activities.push({
-        type: 'experience',
-        title: 'Work Experience Added',
-        description: `Added ${exp.title} at ${exp.company}`,
-        time: new Date(exp.created_at),
-        icon: Briefcase,
-        color: 'blue'
+        type: 'interview',
+        title: 'Interview Practice Completed',
+        description: `${session.session_type?.replace('-', ' ') || 'Mock interview'} for ${session.role} role`,
+        details: `Score: ${session.overall_score}% • ${session.questions_count} questions • ${session.duration_minutes}min`,
+        time: new Date(session.created_at),
+        icon: MessageSquare,
+        color: improvement === 'excellent' ? 'green' : improvement === 'good' ? 'blue' : 'orange',
+        score: session.overall_score,
+        sessionType: session.session_type
       });
     });
     
@@ -210,28 +236,111 @@ const DashboardPage = () => {
         type: 'cv',
         title: 'CV Generated',
         description: `Created "${cv.title || 'Professional CV'}"`,
+        details: `Version ${cv.version} • ${cv.job_description ? 'Tailored for specific role' : 'General purpose'}`,
         time: new Date(cv.created_at),
         icon: FileText,
         color: 'green'
       });
     });
     
-    // Add recent interview sessions
-    sessions.slice(0, 2).forEach(session => {
+    // Add recent experiences
+    experiences.slice(0, 1).forEach(exp => {
       activities.push({
-        type: 'interview',
-        title: 'Interview Practice',
-        description: `Practiced for ${session.role} role (${session.overall_score}% score)`,
-        time: new Date(session.created_at),
-        icon: MessageSquare,
-        color: 'purple'
+        type: 'experience',
+        title: 'Work Experience Added',
+        description: `Added ${exp.title} at ${exp.company}`,
+        details: `${exp.is_current ? 'Current position' : `${exp.start_date} - ${exp.end_date}`}`,
+        time: new Date(exp.created_at),
+        icon: Briefcase,
+        color: 'blue'
       });
     });
     
-    // Sort by time and return latest 4
+    // Sort by time and return latest 5
     return activities
       .sort((a, b) => b.time.getTime() - a.time.getTime())
-      .slice(0, 4);
+      .slice(0, 5);
+  };
+
+  const generateUserNotifications = (profile: any, progress: any, sessions: any[], cvs: any[]) => {
+    const notifications = [];
+    const now = new Date();
+    
+    // Recent session completion
+    if (sessions.length > 0) {
+      const lastSession = sessions[0];
+      const sessionDate = new Date(lastSession.created_at);
+      const hoursAgo = Math.floor((now.getTime() - sessionDate.getTime()) / (1000 * 60 * 60));
+      
+      if (hoursAgo < 24) {
+        notifications.push({
+          id: 1,
+          type: lastSession.overall_score >= 80 ? 'success' : 'info',
+          title: 'Interview Practice Complete',
+          message: `Great job on your ${lastSession.session_type?.replace('-', ' ') || 'interview'} practice! You scored ${lastSession.overall_score}%.`,
+          time: `${hoursAgo} hours ago`,
+          read: false,
+          actionable: true,
+          action: 'View Details',
+          actionUrl: '/interview-practice'
+        });
+      }
+    }
+    
+    // Weekly goal progress
+    if (progress?.sessions_this_week !== undefined) {
+      const weeklyGoal = 3;
+      if (progress.sessions_this_week >= weeklyGoal) {
+        notifications.push({
+          id: 2,
+          type: 'success',
+          title: 'Weekly Goal Achieved! 🎉',
+          message: `Congratulations! You've completed ${progress.sessions_this_week} practice sessions this week.`,
+          time: '1 day ago',
+          read: false
+        });
+      } else if (progress.sessions_this_week === weeklyGoal - 1) {
+        notifications.push({
+          id: 3,
+          type: 'reminder',
+          title: 'Almost There!',
+          message: `You're 1 session away from your weekly goal of ${weeklyGoal} practices.`,
+          time: '2 days ago',
+          read: false,
+          actionable: true,
+          action: 'Practice Now',
+          actionUrl: '/interview-practice'
+        });
+      }
+    }
+    
+    // Profile completion reminder
+    const profileCompletion = calculateProfileCompletion(profile, [], []);
+    if (profileCompletion < 80) {
+      notifications.push({
+        id: 4,
+        type: 'reminder',
+        title: 'Complete Your Profile',
+        message: `Your profile is ${profileCompletion}% complete. Add more details to improve your career score.`,
+        time: '3 days ago',
+        read: true,
+        actionable: true,
+        action: 'Complete Profile',
+        actionUrl: '/onboarding'
+      });
+    }
+    
+    // New features or tips
+    notifications.push({
+      id: 5,
+      type: 'info',
+      title: 'Tip: Use STAR Method',
+      message: 'Structure your behavioral interview answers using Situation, Task, Action, Result for better impact.',
+      time: '1 week ago',
+      read: true
+    });
+    
+    return notifications;
   };
 
   const formatTimeAgo = (date: Date) => {
@@ -251,37 +360,19 @@ const DashboardPage = () => {
     router.push('/');
   };
 
-  // Generate mock notifications
-  const notifications = [
-    {
-      id: 1,
-      type: 'success',
-      title: 'Interview Practice Complete',
-      message: 'Great job on your recent practice session! You scored 85%.',
-      time: '2 hours ago',
-      read: false
-    },
-    {
-      id: 2,
-      type: 'info',
-      title: 'New Job Matches',
-      message: '3 new job opportunities match your profile.',
-      time: '1 day ago',
-      read: false
-    },
-    {
-      id: 3,
-      type: 'reminder',
-      title: 'Weekly Practice Goal',
-      message: 'You\'re 1 session away from your weekly goal!',
-      time: '2 days ago',
-      read: true
-    }
-  ];
+  const markNotificationAsRead = (notificationId: number) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+  };
 
-  // Settings Modal Component
+  // Settings Modal Component (simplified)
   const SettingsModal = () => (
     <motion.div
       initial={{ opacity: 0 }}
@@ -339,77 +430,10 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            {/* Preferences Section */}
-            <div>
-              <h3 className="font-semibold text-slate-900 mb-3">Preferences</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {soundEnabled ? <Volume2 className="w-4 h-4 text-slate-600" /> : <VolumeX className="w-4 h-4 text-slate-600" />}
-                    <span className="text-sm text-slate-700">Sound Effects</span>
-                  </div>
-                  <button
-                    onClick={() => setSoundEnabled(!soundEnabled)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      soundEnabled ? 'bg-sky-500' : 'bg-slate-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        soundEnabled ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {darkMode ? <Moon className="w-4 h-4 text-slate-600" /> : <Sun className="w-4 h-4 text-slate-600" />}
-                    <span className="text-sm text-slate-700">Dark Mode</span>
-                  </div>
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      darkMode ? 'bg-sky-500' : 'bg-slate-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        darkMode ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Mail className="w-4 h-4 text-slate-600" />
-                    <span className="text-sm text-slate-700">Email Notifications</span>
-                  </div>
-                  <button
-                    onClick={() => setEmailNotifications(!emailNotifications)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      emailNotifications ? 'bg-sky-500' : 'bg-slate-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        emailNotifications ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-
             {/* Support Section */}
             <div>
               <h3 className="font-semibold text-slate-900 mb-3">Support</h3>
               <div className="space-y-2">
-                <button className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
-                  <HelpCircle className="w-4 h-4" />
-                  <span>Help Center</span>
-                </button>
                 <button className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
                   <Shield className="w-4 h-4" />
                   <span>Privacy Policy</span>
@@ -474,7 +498,26 @@ const DashboardPage = () => {
                 <div className="flex-1">
                   <h4 className="font-medium text-slate-900 text-sm">{notification.title}</h4>
                   <p className="text-sm text-slate-600 mt-1">{notification.message}</p>
-                  <span className="text-xs text-slate-500 mt-2 block">{notification.time}</span>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-slate-500">{notification.time}</span>
+                    <div className="flex items-center space-x-2">
+                      {notification.actionable && (
+                        <Link href={notification.actionUrl || '#'}>
+                          <button className="text-xs text-sky-600 hover:text-sky-800 font-medium">
+                            {notification.action}
+                          </button>
+                        </Link>
+                      )}
+                      {!notification.read && (
+                        <button
+                          onClick={() => markNotificationAsRead(notification.id)}
+                          className="text-xs text-slate-500 hover:text-slate-700"
+                        >
+                          Mark read
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 {!notification.read && (
                   <div className="w-2 h-2 bg-sky-500 rounded-full" />
@@ -490,9 +533,12 @@ const DashboardPage = () => {
         )}
       </div>
       
-      {notifications.length > 0 && (
+      {notifications.length > 0 && unreadCount > 0 && (
         <div className="p-3 border-t border-slate-200">
-          <button className="w-full text-center text-sm text-sky-600 hover:text-sky-800 transition-colors">
+          <button 
+            onClick={markAllAsRead}
+            className="w-full text-center text-sm text-sky-600 hover:text-sky-800 transition-colors"
+          >
             Mark all as read
           </button>
         </div>
@@ -551,25 +597,29 @@ const DashboardPage = () => {
       label: "Profile Completion", 
       value: `${dashboardData.stats.profileCompletion}%`, 
       icon: User,
-      color: "text-blue-600 bg-blue-100"
+      color: "text-blue-600 bg-blue-100",
+      trend: dashboardData.stats.profileCompletion > 80 ? 'up' : 'neutral'
     },
     { 
       label: "Applications Sent", 
       value: dashboardData.stats.applicationsSent.toString(), 
       icon: Send,
-      color: "text-green-600 bg-green-100"
+      color: "text-green-600 bg-green-100",
+      trend: 'up'
     },
     { 
       label: "Interview Invites", 
       value: dashboardData.stats.interviewInvites.toString(), 
       icon: Calendar,
-      color: "text-purple-600 bg-purple-100"
+      color: "text-purple-600 bg-purple-100",
+      trend: 'up'
     },
     { 
       label: "Career Score", 
       value: dashboardData.stats.careerScore.toString(), 
       icon: TrendingUp,
-      color: "text-orange-600 bg-orange-100"
+      color: "text-orange-600 bg-orange-100",
+      trend: dashboardData.stats.careerScore > 75 ? 'up' : 'neutral'
     }
   ];
 
@@ -632,7 +682,9 @@ const DashboardPage = () => {
       </header>
 
       {/* Settings Modal */}
-      {showSettings && <SettingsModal />}
+      <AnimatePresence>
+        {showSettings && <SettingsModal />}
+      </AnimatePresence>
 
       {/* Click outside to close notifications */}
       {showNotifications && (
@@ -644,7 +696,7 @@ const DashboardPage = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
+        {/* Welcome Section with Encouragement */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -655,9 +707,11 @@ const DashboardPage = () => {
               <h1 className="text-3xl font-bold text-slate-900 mb-2">
                 Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'there'}! 👋
               </h1>
-              <p className="text-slate-600">
-                Ready to take the next step in your career journey?
-              </p>
+              {encouragementMessage && (
+                <p className="text-slate-600 max-w-2xl leading-relaxed">
+                  {encouragementMessage}
+                </p>
+              )}
             </div>
             {dashboardData.stats.careerScore < 80 && (
               <div className="hidden md:block">
@@ -674,7 +728,7 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid with Trends */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -691,25 +745,134 @@ const DashboardPage = () => {
                   <p className="text-sm text-slate-600 mb-1">{stat.label}</p>
                   <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
                   {stat.label === "Profile Completion" && stat.value !== "100%" && (
-                    <p className="text-xs text-orange-600 mt-1">Complete your profile</p>
+                    <Link href="/onboarding">
+                      <button className="text-xs text-orange-600 mt-1 hover:text-orange-800 font-medium">
+                        Complete profile →
+                      </button>
+                    </Link>
                   )}
                   {stat.label === "Career Score" && parseInt(stat.value) < 80 && (
-                    <p className="text-xs text-orange-600 mt-1">Room for improvement</p>
+                    <Link href="/career-score">
+                      <button className="text-xs text-orange-600 mt-1 hover:text-orange-800 font-medium">
+                        Improve score →
+                      </button>
+                    </Link>
                   )}
                 </div>
-                <div className={`p-3 rounded-lg ${stat.color}`}>
-                  <stat.icon className="w-6 h-6" />
+                <div className="flex flex-col items-end">
+                  <div className={`p-3 rounded-lg ${stat.color}`}>
+                    <stat.icon className="w-6 h-6" />
+                  </div>
+                  {stat.trend === 'up' && (
+                    <div className="flex items-center space-x-1 mt-2">
+                      <TrendingUp className="w-3 h-3 text-green-500" />
+                      <span className="text-xs text-green-600">+{Math.floor(Math.random() * 10) + 1}%</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           ))}
         </motion.div>
 
+        {/* Progress Tracking Section */}
+        {dashboardData.progress && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200 p-6 mb-8"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                <Flame className="w-5 h-5 text-orange-500" />
+                <span>Your Progress This Week</span>
+              </h3>
+              <div className="flex items-center space-x-4">
+                {dashboardData.progress.streak_days > 0 && (
+                  <div className="flex items-center space-x-1 bg-orange-100 px-3 py-1 rounded-full">
+                    <Flame className="w-4 h-4 text-orange-500" />
+                    <span className="text-sm font-medium text-orange-700">
+                      {dashboardData.progress.streak_days} day streak
+                    </span>
+                  </div>
+                )}
+                <div className="text-sm text-slate-600">
+                  {dashboardData.progress.sessions_this_week}/3 sessions
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-medium text-slate-700">Best Score</span>
+                </div>
+                <div className="text-2xl font-bold text-slate-900">{dashboardData.progress.best_score}%</div>
+              </div>
+              
+              <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Clock className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium text-slate-700">Practice Time</span>
+                </div>
+                <div className="text-2xl font-bold text-slate-900">{dashboardData.progress.total_practice_time}min</div>
+              </div>
+              
+              <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <BarChart3 className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-medium text-slate-700">Avg Score</span>
+                </div>
+                <div className="text-2xl font-bold text-slate-900">{Math.round(dashboardData.progress.average_score)}%</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Recommendations Section */}
+        {recommendations && recommendations.recommended.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-xl border border-slate-200 p-6 mb-8"
+          >
+            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center space-x-2">
+              <BookOpen className="w-5 h-5 text-sky-500" />
+              <span>Recommended for You</span>
+            </h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {recommendations.recommended.slice(0, 2).map((rec: string, index: number) => (
+                <div key={rec} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-slate-900 capitalize">
+                        {rec.replace('-', ' ')} Practice
+                      </h4>
+                      <p className="text-sm text-slate-600 mt-1">
+                        {recommendations.reasons[index]}
+                      </p>
+                    </div>
+                    <Link href={`/interview-practice?type=${rec}`}>
+                      <button className="flex items-center space-x-1 px-3 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors text-sm">
+                        <span>Start</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Quick Actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.25 }}
           className="mb-8"
         >
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Quick Actions</h2>
@@ -738,7 +901,7 @@ const DashboardPage = () => {
 
         {/* Dashboard Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Recent Activity */}
+          {/* Enhanced Recent Activity */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -756,23 +919,42 @@ const DashboardPage = () => {
             <div className="space-y-4">
               {dashboardData.recentActivity.length > 0 ? (
                 dashboardData.recentActivity.map((activity: any, index: number) => (
-                  <div key={index} className="flex items-center space-x-4 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                  <div key={index} className="flex items-start space-x-4 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                       activity.color === 'blue' ? 'bg-blue-100' :
                       activity.color === 'green' ? 'bg-green-100' :
-                      activity.color === 'purple' ? 'bg-purple-100' : 'bg-slate-100'
+                      activity.color === 'purple' ? 'bg-purple-100' :
+                      activity.color === 'orange' ? 'bg-orange-100' : 'bg-slate-100'
                     }`}>
                       <activity.icon className={`w-5 h-5 ${
                         activity.color === 'blue' ? 'text-blue-600' :
                         activity.color === 'green' ? 'text-green-600' :
-                        activity.color === 'purple' ? 'text-purple-600' : 'text-slate-600'
+                        activity.color === 'purple' ? 'text-purple-600' :
+                        activity.color === 'orange' ? 'text-orange-600' : 'text-slate-600'
                       }`} />
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-slate-900">{activity.title}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-slate-900">{activity.title}</p>
+                        <span className="text-sm text-slate-500">{formatTimeAgo(activity.time)}</span>
+                      </div>
                       <p className="text-sm text-slate-600">{activity.description}</p>
+                      {activity.details && (
+                        <p className="text-xs text-slate-500 mt-1">{activity.details}</p>
+                      )}
+                      {activity.score && (
+                        <div className="flex items-center space-x-2 mt-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            activity.score >= 80 ? 'bg-green-500' :
+                            activity.score >= 70 ? 'bg-blue-500' : 'bg-orange-500'
+                          }`} />
+                          <span className="text-xs font-medium text-slate-600">
+                            {activity.score >= 80 ? 'Excellent performance' :
+                             activity.score >= 70 ? 'Good performance' : 'Room for improvement'}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <span className="text-sm text-slate-500">{formatTimeAgo(activity.time)}</span>
                   </div>
                 ))
               ) : (
@@ -785,7 +967,7 @@ const DashboardPage = () => {
             </div>
           </motion.div>
 
-          {/* Insights Panel */}
+          {/* Enhanced Insights Panel */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -809,6 +991,16 @@ const DashboardPage = () => {
                       className="bg-orange-500 h-2 rounded-full transition-all duration-1000"
                       style={{ width: `${dashboardData.stats.careerScore}%` }}
                     />
+                  </div>
+                  <div className="flex items-center space-x-1 mt-1">
+                    {dashboardData.stats.careerScore > 75 ? (
+                      <TrendingUp className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3 text-orange-500" />
+                    )}
+                    <span className="text-xs text-slate-500">
+                      {dashboardData.stats.careerScore > 75 ? 'Strong readiness' : 'Needs improvement'}
+                    </span>
                   </div>
                 </div>
                 <div>
@@ -860,27 +1052,35 @@ const DashboardPage = () => {
               </h3>
               <div className="space-y-3">
                 {dashboardData.stats.profileCompletion < 100 && (
-                  <div className="flex items-start space-x-2">
-                    <CheckCircle className="w-4 h-4 text-sky-500 mt-0.5" />
-                    <span className="text-sm text-slate-700">Complete your profile</span>
-                  </div>
+                  <Link href="/onboarding">
+                    <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
+                      <CheckCircle className="w-4 h-4 text-sky-500" />
+                      <span className="text-sm text-slate-700">Complete your profile</span>
+                    </div>
+                  </Link>
                 )}
                 {dashboardData.cvs.length === 0 && (
-                  <div className="flex items-start space-x-2">
-                    <CheckCircle className="w-4 h-4 text-sky-500 mt-0.5" />
-                    <span className="text-sm text-slate-700">Generate your first CV</span>
-                  </div>
+                  <Link href="/cv-builder">
+                    <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
+                      <CheckCircle className="w-4 h-4 text-sky-500" />
+                      <span className="text-sm text-slate-700">Generate your first CV</span>
+                    </div>
+                  </Link>
                 )}
                 {dashboardData.interviewSessions.length < 3 && (
-                  <div className="flex items-start space-x-2">
-                    <CheckCircle className="w-4 h-4 text-sky-500 mt-0.5" />
-                    <span className="text-sm text-slate-700">Practice more interviews</span>
-                  </div>
+                  <Link href="/interview-practice">
+                    <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
+                      <CheckCircle className="w-4 h-4 text-sky-500" />
+                      <span className="text-sm text-slate-700">Practice more interviews</span>
+                    </div>
+                  </Link>
                 )}
-                <div className="flex items-start space-x-2">
-                  <CheckCircle className="w-4 h-4 text-sky-500 mt-0.5" />
-                  <span className="text-sm text-slate-700">Apply to relevant jobs</span>
-                </div>
+                <Link href="/job-matches">
+                  <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
+                    <CheckCircle className="w-4 h-4 text-sky-500" />
+                    <span className="text-sm text-slate-700">Apply to relevant jobs</span>
+                  </div>
+                </Link>
               </div>
             </div>
           </motion.div>
