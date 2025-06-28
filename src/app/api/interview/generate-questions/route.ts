@@ -22,12 +22,16 @@ export async function POST(request: NextRequest) {
       role, 
       experienceYears, 
       context, 
-      cvData 
+      cvData,
+      sessionType,
+      questionCount = 6
     }: {
       role: string;
       experienceYears: number;
       context?: string;
       cvData?: any;
+      sessionType: string;
+      questionCount: number;
     } = await request.json();
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -45,40 +49,75 @@ export async function POST(request: NextRequest) {
 - Key Skills: ${cvData.skills?.map((skill: any) => skill.name).join(', ') || 'Not provided'}
 ` : '';
 
+    // Define session-specific question types and focus areas
+    const sessionConfigs = {
+      'introduction': {
+        types: ['introduction', 'personal-brand', 'career-overview'],
+        focus: 'self-introduction, personal branding, career summary, and value proposition'
+      },
+      'experience': {
+        types: ['behavioral', 'experience-based', 'achievement'],
+        focus: 'work experience, achievements, STAR method responses, and career progression'
+      },
+      'strengths-weaknesses': {
+        types: ['self-assessment', 'behavioral', 'growth-mindset'],
+        focus: 'strengths, weaknesses, self-awareness, and professional development'
+      },
+      'salary': {
+        types: ['negotiation', 'compensation', 'value-proposition'],
+        focus: 'salary expectations, compensation negotiation, and value justification'
+      },
+      'job-specific': {
+        types: ['technical', 'role-specific', 'industry-knowledge'],
+        focus: 'technical skills, role-specific competencies, and industry knowledge'
+      },
+      'mock-interview': {
+        types: ['introduction', 'behavioral', 'technical', 'situational', 'closing'],
+        focus: 'comprehensive interview simulation with all question types'
+      }
+    };
+
+    const sessionConfig = sessionConfigs[sessionType as keyof typeof sessionConfigs] || sessionConfigs['mock-interview'];
+
     const prompt = `
-You are an experienced interviewer conducting a mock interview for a ${role} position requiring ${experienceYears} years of experience.
+You are an experienced interviewer conducting a ${sessionType === 'mock-interview' ? 'full mock interview' : `focused coaching session on ${sessionType.replace('-', ' ')}`} for a ${role} position requiring ${experienceYears} years of experience.
 
 ${cvContext}
 
 ${context ? `**Additional Context:** ${context}` : ''}
 
-Generate exactly 8 interview questions that are:
-1. Appropriate for the role and experience level
-2. Mix of behavioral, technical, and situational questions
-3. Progressively challenging (start easier, get more complex)
-4. Relevant to the candidate's background if CV data is provided
-5. Designed to assess key competencies for the role
+**Session Type:** ${sessionType}
+**Session Focus:** ${sessionConfig.focus}
+**Question Types to Include:** ${sessionConfig.types.join(', ')}
+
+Generate exactly ${questionCount} interview questions that are:
+1. Specifically focused on ${sessionConfig.focus}
+2. Appropriate for the role and experience level
+3. Relevant to the candidate's background if CV data is provided
+4. Designed to assess key competencies for ${sessionType === 'mock-interview' ? 'overall interview performance' : sessionType.replace('-', ' ')}
+5. Progressively challenging but appropriate for the session focus
+
+For ${sessionType} sessions, ensure questions are:
+${sessionType === 'introduction' ? '- Focused on self-presentation and personal branding\n- About career journey and value proposition\n- Designed to help practice elevator pitches' : ''}
+${sessionType === 'experience' ? '- Behavioral questions using STAR method\n- About specific achievements and challenges\n- Focused on quantifiable results and impact' : ''}
+${sessionType === 'strengths-weaknesses' ? '- About self-awareness and growth mindset\n- Exploring authentic strengths and genuine areas for improvement\n- Focused on professional development' : ''}
+${sessionType === 'salary' ? '- About compensation expectations and negotiation\n- Exploring value proposition and market research\n- Focused on professional worth and benefits' : ''}
+${sessionType === 'job-specific' ? '- Technical and role-specific competencies\n- Industry knowledge and best practices\n- Problem-solving and domain expertise' : ''}
+${sessionType === 'mock-interview' ? '- Comprehensive mix of all question types\n- Realistic interview flow and progression\n- Complete interview simulation' : ''}
 
 **CRITICAL: Return ONLY a valid JSON array of question objects. No explanations, no markdown formatting, no additional text.**
 
 Format: [
   {
     "id": 1,
-    "question": "Tell me about yourself and why you're interested in this ${role} position.",
+    "question": "Tell me about yourself and what makes you a strong candidate for this ${role} position.",
     "type": "introduction",
     "expectedDuration": 120,
     "keyPoints": ["Background summary", "Career motivation", "Role alignment"]
-  },
-  {
-    "id": 2,
-    "question": "Describe a challenging project you worked on recently.",
-    "type": "behavioral",
-    "expectedDuration": 180,
-    "keyPoints": ["Problem-solving", "Technical skills", "Results achieved"]
   }
 ]
 
-Question types should include: introduction, behavioral, technical, situational, and closing.
+Question types should include: ${sessionConfig.types.join(', ')}.
 Expected duration is in seconds.
 `;
 
@@ -106,10 +145,10 @@ Expected duration is in seconds.
         throw new Error('Response is not an array');
       }
       
-      // Ensure each question has required fields
+      // Ensure each question has required fields and limit to requested count
       questionsData = questionsData.filter(q => 
         q && typeof q === 'object' && q.question && q.type
-      ).map((q, index) => ({
+      ).slice(0, questionCount).map((q, index) => ({
         id: q.id || index + 1,
         question: q.question,
         type: q.type || 'general',
@@ -117,68 +156,18 @@ Expected duration is in seconds.
         keyPoints: q.keyPoints || []
       }));
       
+      // Ensure we have the requested number of questions
+      if (questionsData.length < questionCount) {
+        // Add fallback questions if needed
+        const fallbackQuestions = generateFallbackQuestions(sessionType, role, questionCount - questionsData.length);
+        questionsData = [...questionsData, ...fallbackQuestions];
+      }
+      
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);
       
-      // Generate fallback questions based on role
-      questionsData = [
-        {
-          id: 1,
-          question: `Tell me about yourself and why you're interested in this ${role} position.`,
-          type: "introduction",
-          expectedDuration: 120,
-          keyPoints: ["Background summary", "Career motivation", "Role alignment"]
-        },
-        {
-          id: 2,
-          question: "What are your greatest strengths and how do they apply to this role?",
-          type: "behavioral",
-          expectedDuration: 90,
-          keyPoints: ["Self-awareness", "Relevant strengths", "Role connection"]
-        },
-        {
-          id: 3,
-          question: "Describe a challenging situation you faced at work and how you handled it.",
-          type: "behavioral",
-          expectedDuration: 180,
-          keyPoints: ["Problem-solving", "Resilience", "Learning"]
-        },
-        {
-          id: 4,
-          question: `What technical skills do you have that make you suitable for this ${role} position?`,
-          type: "technical",
-          expectedDuration: 120,
-          keyPoints: ["Technical competency", "Relevant experience", "Continuous learning"]
-        },
-        {
-          id: 5,
-          question: "How do you handle working under pressure and tight deadlines?",
-          type: "situational",
-          expectedDuration: 120,
-          keyPoints: ["Stress management", "Time management", "Quality maintenance"]
-        },
-        {
-          id: 6,
-          question: "Where do you see yourself in 5 years?",
-          type: "behavioral",
-          expectedDuration: 90,
-          keyPoints: ["Career goals", "Ambition", "Company alignment"]
-        },
-        {
-          id: 7,
-          question: "Why are you leaving your current position?",
-          type: "behavioral",
-          expectedDuration: 90,
-          keyPoints: ["Professional motivation", "Positive framing", "Growth mindset"]
-        },
-        {
-          id: 8,
-          question: "Do you have any questions for me about the role or company?",
-          type: "closing",
-          expectedDuration: 120,
-          keyPoints: ["Engagement", "Research", "Interest level"]
-        }
-      ];
+      // Generate fallback questions based on session type
+      questionsData = generateFallbackQuestions(sessionType, role, questionCount);
     }
 
     return NextResponse.json({ questions: questionsData });
@@ -189,4 +178,151 @@ Expected duration is in seconds.
       { status: 500 }
     );
   }
+}
+
+function generateFallbackQuestions(sessionType: string, role: string, count: number) {
+  const fallbackQuestions: { [key: string]: any[] } = {
+    'introduction': [
+      {
+        id: 1,
+        question: `Tell me about yourself and why you're interested in this ${role} position.`,
+        type: "introduction",
+        expectedDuration: 120,
+        keyPoints: ["Background summary", "Career motivation", "Role alignment"]
+      },
+      {
+        id: 2,
+        question: "What makes you unique as a candidate?",
+        type: "personal-brand",
+        expectedDuration: 90,
+        keyPoints: ["Unique value proposition", "Differentiators", "Personal brand"]
+      },
+      {
+        id: 3,
+        question: "Walk me through your career journey so far.",
+        type: "career-overview",
+        expectedDuration: 150,
+        keyPoints: ["Career progression", "Key decisions", "Growth trajectory"]
+      }
+    ],
+    'experience': [
+      {
+        id: 1,
+        question: "Tell me about a challenging project you worked on recently.",
+        type: "behavioral",
+        expectedDuration: 180,
+        keyPoints: ["Problem-solving", "Technical skills", "Results achieved"]
+      },
+      {
+        id: 2,
+        question: "Describe a time when you had to work under pressure.",
+        type: "behavioral",
+        expectedDuration: 150,
+        keyPoints: ["Stress management", "Time management", "Quality delivery"]
+      },
+      {
+        id: 3,
+        question: "What's your greatest professional achievement?",
+        type: "achievement",
+        expectedDuration: 120,
+        keyPoints: ["Impact", "Recognition", "Personal growth"]
+      }
+    ],
+    'strengths-weaknesses': [
+      {
+        id: 1,
+        question: "What are your greatest strengths?",
+        type: "self-assessment",
+        expectedDuration: 90,
+        keyPoints: ["Self-awareness", "Relevant strengths", "Examples"]
+      },
+      {
+        id: 2,
+        question: "What's an area you're working to improve?",
+        type: "self-assessment",
+        expectedDuration: 120,
+        keyPoints: ["Growth mindset", "Self-improvement", "Action plan"]
+      },
+      {
+        id: 3,
+        question: "How do you handle feedback and criticism?",
+        type: "growth-mindset",
+        expectedDuration: 100,
+        keyPoints: ["Receptiveness", "Learning attitude", "Professional development"]
+      }
+    ],
+    'salary': [
+      {
+        id: 1,
+        question: "What are your salary expectations for this role?",
+        type: "negotiation",
+        expectedDuration: 120,
+        keyPoints: ["Market research", "Value proposition", "Flexibility"]
+      },
+      {
+        id: 2,
+        question: "How do you determine your worth in the market?",
+        type: "value-proposition",
+        expectedDuration: 100,
+        keyPoints: ["Skills assessment", "Market analysis", "Unique value"]
+      },
+      {
+        id: 3,
+        question: "What factors are most important to you in a compensation package?",
+        type: "compensation",
+        expectedDuration: 90,
+        keyPoints: ["Priorities", "Total compensation", "Benefits"]
+      }
+    ],
+    'job-specific': [
+      {
+        id: 1,
+        question: `What technical skills make you suitable for this ${role} position?`,
+        type: "technical",
+        expectedDuration: 120,
+        keyPoints: ["Technical competency", "Relevant experience", "Continuous learning"]
+      },
+      {
+        id: 2,
+        question: "How do you stay current with industry trends?",
+        type: "industry-knowledge",
+        expectedDuration: 100,
+        keyPoints: ["Learning methods", "Industry awareness", "Professional development"]
+      },
+      {
+        id: 3,
+        question: `Describe a technical challenge you've solved in your ${role} work.`,
+        type: "role-specific",
+        expectedDuration: 180,
+        keyPoints: ["Problem-solving", "Technical approach", "Results"]
+      }
+    ]
+  };
+
+  const defaultQuestions = [
+    {
+      id: 1,
+      question: `Tell me about yourself and why you're interested in this ${role} position.`,
+      type: "introduction",
+      expectedDuration: 120,
+      keyPoints: ["Background summary", "Career motivation", "Role alignment"]
+    },
+    {
+      id: 2,
+      question: "What are your greatest strengths?",
+      type: "behavioral",
+      expectedDuration: 90,
+      keyPoints: ["Self-awareness", "Relevant strengths", "Role connection"]
+    },
+    {
+      id: 3,
+      question: "Describe a challenging situation you faced at work and how you handled it.",
+      type: "behavioral",
+      expectedDuration: 180,
+      keyPoints: ["Problem-solving", "Resilience", "Learning"]
+    }
+  ];
+
+  const questions = fallbackQuestions[sessionType] || defaultQuestions;
+  return questions.slice(0, count);
 }

@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
       role, 
       experienceYears, 
       responses,
-      overallDuration
+      overallDuration,
+      sessionType
     }: {
       role: string;
       experienceYears: number;
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
         type: string;
       }>;
       overallDuration: number;
+      sessionType?: string;
     } = await request.json();
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -44,15 +46,25 @@ export async function POST(request: NextRequest) {
       return acc;
     }, {} as Record<string, typeof responses>);
 
-    const prompt = `
-You are an expert interview coach providing comprehensive feedback on a mock interview.
+    // Session-specific context
+    const sessionContext = sessionType ? `
+**Session Type:** ${sessionType}
+**Session Focus:** This was a ${sessionType.replace('-', ' ')} coaching session.
+${sessionType === 'mock-interview' ? 'Provide comprehensive interview feedback.' : `Provide focused feedback on ${sessionType.replace('-', ' ')} skills.`}
+` : '';
 
-**Interview Summary:**
+    const prompt = `
+You are an expert interview coach providing comprehensive feedback on a ${sessionType === 'mock-interview' ? 'mock interview' : 'coaching session'}.
+
+**Session Summary:**
 - Role: ${role}
 - Experience Level: ${experienceYears} years
+- Session Type: ${sessionType || 'general'}
 - Total Duration: ${Math.round(overallDuration / 60)} minutes
 - Questions Answered: ${responses.length}
 - Average Score: ${averageScore.toFixed(1)}/100
+
+${sessionContext}
 
 **Response Breakdown by Type:**
 ${Object.entries(responsesByType).map(([type, typeResponses]) => `
@@ -60,11 +72,11 @@ ${type.toUpperCase()} Questions (${typeResponses.length}):
 ${typeResponses.map(r => `- Q: "${r.question.substring(0, 60)}..." | Score: ${r.score}/100`).join('\n')}
 `).join('\n')}
 
-Provide a comprehensive interview analysis in the following JSON format:
+Provide a comprehensive ${sessionType === 'mock-interview' ? 'interview' : 'coaching session'} analysis in the following JSON format:
 
 {
   "overallScore": 85,
-  "overallFeedback": "You demonstrated strong communication skills throughout the interview...",
+  "overallFeedback": "${sessionType === 'mock-interview' ? 'You demonstrated strong communication skills throughout the interview...' : `Your ${sessionType.replace('-', ' ')} skills showed good foundation with areas for improvement...`}",
   "strengths": [
     "Excellent communication skills",
     "Strong technical knowledge",
@@ -92,15 +104,15 @@ Provide a comprehensive interview analysis in the following JSON format:
     "Focus on technical skill development",
     "Prepare thoughtful questions for the interviewer"
   ],
-  "readinessLevel": "Strong candidate - ready for interviews with minor improvements"
+  "readinessLevel": "${sessionType === 'mock-interview' ? 'Strong candidate - ready for interviews with minor improvements' : `Good ${sessionType.replace('-', ' ')} foundation - continue practicing for improvement`}"
 }
 
 **Scoring Guidelines:**
-- 90-100: Exceptional candidate, ready for senior roles
-- 80-89: Strong candidate, ready for most interviews
-- 70-79: Good candidate, needs some preparation
-- 60-69: Adequate candidate, requires focused improvement
-- Below 60: Needs significant preparation before interviewing
+- 90-100: Exceptional ${sessionType === 'mock-interview' ? 'candidate, ready for senior roles' : 'performance in this area'}
+- 80-89: Strong ${sessionType === 'mock-interview' ? 'candidate, ready for most interviews' : 'skills with minor improvements needed'}
+- 70-79: Good ${sessionType === 'mock-interview' ? 'candidate, needs some preparation' : 'foundation, requires focused practice'}
+- 60-69: Adequate ${sessionType === 'mock-interview' ? 'candidate, requires focused improvement' : 'skills, needs significant practice'}
+- Below 60: Needs significant ${sessionType === 'mock-interview' ? 'preparation before interviewing' : 'improvement in this area'}
 
 **CRITICAL: Return ONLY valid JSON. No explanations, no markdown formatting, no additional text.**
 `;
@@ -130,9 +142,9 @@ Provide a comprehensive interview analysis in the following JSON format:
       // Generate fallback analysis
       analysisData = {
         overallScore: Math.round(averageScore),
-        overallFeedback: `You completed the interview with an average score of ${averageScore.toFixed(1)}/100. This shows ${averageScore >= 80 ? 'strong' : averageScore >= 70 ? 'good' : 'developing'} interview skills.`,
+        overallFeedback: `You completed the ${sessionType === 'mock-interview' ? 'interview' : 'coaching session'} with an average score of ${averageScore.toFixed(1)}/100. This shows ${averageScore >= 80 ? 'strong' : averageScore >= 70 ? 'good' : 'developing'} ${sessionType === 'mock-interview' ? 'interview' : sessionType.replace('-', ' ')} skills.`,
         strengths: [
-          "Completed all interview questions",
+          "Completed all questions",
           "Maintained engagement throughout",
           "Provided relevant responses"
         ],
@@ -149,18 +161,22 @@ Provide a comprehensive interview analysis in the following JSON format:
           leadership: Math.round(averageScore * 0.85)
         },
         recommendations: [
-          "Practice the STAR method for behavioral questions",
+          sessionType === 'mock-interview' ? "Practice the STAR method for behavioral questions" : `Continue practicing ${sessionType.replace('-', ' ')} scenarios`,
           "Prepare specific examples with quantified results",
-          "Research common interview questions for your role"
+          sessionType === 'mock-interview' ? "Research common interview questions for your role" : `Focus on improving ${sessionType.replace('-', ' ')} techniques`
         ],
         nextSteps: [
           "Schedule additional practice sessions",
           "Focus on areas with lower scores",
-          "Prepare questions to ask the interviewer"
+          sessionType === 'mock-interview' ? "Prepare questions to ask the interviewer" : `Practice more ${sessionType.replace('-', ' ')} scenarios`
         ],
-        readinessLevel: averageScore >= 80 ? "Strong candidate - ready for interviews" : 
-                       averageScore >= 70 ? "Good candidate - minor improvements needed" :
-                       "Developing candidate - focused preparation recommended"
+        readinessLevel: sessionType === 'mock-interview' 
+          ? (averageScore >= 80 ? "Strong candidate - ready for interviews" : 
+             averageScore >= 70 ? "Good candidate - minor improvements needed" :
+             "Developing candidate - focused preparation recommended")
+          : (averageScore >= 80 ? `Strong ${sessionType.replace('-', ' ')} skills` :
+             averageScore >= 70 ? `Good ${sessionType.replace('-', ' ')} foundation` :
+             `Developing ${sessionType.replace('-', ' ')} skills - continue practicing`)
       };
     }
 
