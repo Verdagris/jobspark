@@ -1,27 +1,40 @@
-// Import all the components we've built
-import { Header } from "@/components/layout/Header";
-import { Hero } from "@/components/sections/Hero";
-import { TechPartners } from "@/components/sections/TechPartners";
-import { Stats } from "@/components/sections/Stats";
-import { Features } from "@/components/sections/Features";
-import { HowItWorks } from "@/components/sections/HowItWorks";
-import { Testimonials } from "@/components/sections/Testimonials";
-import { CTA } from "@/components/sections/CTA";
-import { Footer } from "@/components/layout/Footer";
+"use client";
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Sparkles } from 'lucide-react';
 
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to auth page after a short delay
+    const timer = setTimeout(() => {
+      router.replace('/auth');
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  // Show loading with South African colors while redirecting
   return (
-    // The main container provides the base background color
-    <main className="bg-white text-slate-800 antialiased">
-      <Header />
-      <Hero />
-      <TechPartners />
-      <Stats />
-      <Features />
-      <HowItWorks />
-      <Testimonials />
-      <CTA />
-      <Footer />
-    </main>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+      <div className="flex items-center space-x-3 mb-6">
+        <Sparkles className="w-12 h-12 text-green-600" />
+        <h1 className="text-4xl font-bold text-slate-900">JobSpark</h1>
+      </div>
+      <div className="flex flex-col items-center">
+        <div className="w-12 h-12 border-4 border-green-600/30 border-t-green-600 rounded-full animate-spin mb-4"></div>
+        <span className="text-slate-600 font-medium">Loading your career journey...</span>
+        <div className="mt-4 flex space-x-2">
+          <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse"></div>
+          <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse animation-delay-1000"></div>
+          <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse animation-delay-2000"></div>
+        </div>
+      </div>
+      <div className="absolute bottom-8 text-center">
+        <p className="text-slate-500 text-sm">Proudly South African 🇿🇦</p>
+      </div>
+    </div>
   );
 }
