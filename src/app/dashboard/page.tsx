@@ -7,12 +7,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { 
   getUserProfile, 
   getUserExperiences, 
+  getUserEducation,
   getUserSkills, 
   getUserCVs,
   getUserInterviewSessions,
   getUserProgress,
   getEncouragementMessage,
-  getSessionRecommendations
+  getSessionRecommendations,
+  calculateCareerScore
 } from "@/lib/database";
 import { 
   Sparkles, 
@@ -46,7 +48,8 @@ import {
   Building2,
   Flame,
   Trophy,
-  BookOpen
+  BookOpen,
+  Search
 } from "lucide-react";
 import Link from "next/link";
 
@@ -108,9 +111,10 @@ const DashboardPage = () => {
     if (!user) return;
     
     try {
-      const [profile, experiences, skills, cvs, interviewSessions, progress] = await Promise.all([
+      const [profile, experiences, education, skills, cvs, interviewSessions, progress] = await Promise.all([
         getUserProfile(user.id),
         getUserExperiences(user.id),
+        getUserEducation(user.id),
         getUserSkills(user.id),
         getUserCVs(user.id),
         getUserInterviewSessions(user.id),
@@ -120,8 +124,8 @@ const DashboardPage = () => {
       // Calculate profile completion
       const profileCompletion = calculateProfileCompletion(profile, experiences, skills);
       
-      // Calculate career score (consistent with career score page)
-      const careerScore = calculateCareerScore(profile, experiences, skills, cvs, interviewSessions);
+      // Use consistent career score calculation with education parameter
+      const careerScore = calculateCareerScore(profile, experiences, skills, cvs, interviewSessions, education);
       
       // Get recent activity with more details
       const recentActivity = getEnhancedRecentActivity(experiences, cvs, interviewSessions);
@@ -142,6 +146,7 @@ const DashboardPage = () => {
       setDashboardData({
         profile,
         experiences,
+        education,
         skills,
         cvs,
         interviewSessions,
@@ -178,37 +183,6 @@ const DashboardPage = () => {
     if (profile?.profile_image_url) completed++;
     
     return Math.round((completed / total) * 100);
-  };
-
-  const calculateCareerScore = (profile: any, experiences: any[], skills: any[], cvs: any[], sessions: any[]) => {
-    let score = 0;
-    
-    // Profile completeness (25%)
-    const profileScore = calculateProfileCompletion(profile, experiences, skills);
-    score += profileScore * 0.25;
-    
-    // CV quality (25%)
-    let cvScore = 40;
-    if (cvs.length > 0) cvScore += 30;
-    if (experiences.length >= 2) cvScore += 20;
-    if (skills.length >= 5) cvScore += 10;
-    score += Math.min(100, cvScore) * 0.25;
-    
-    // Interview readiness (25%)
-    let interviewScore = 30;
-    if (sessions.length > 0) {
-      const avgScore = sessions.reduce((sum: number, s: any) => sum + s.overall_score, 0) / sessions.length;
-      interviewScore = avgScore;
-    }
-    score += interviewScore * 0.25;
-    
-    // Market alignment (25%)
-    let marketScore = 60;
-    if (skills.length >= 5) marketScore += 20;
-    if (experiences.length >= 2) marketScore += 20;
-    score += Math.min(100, marketScore) * 0.25;
-    
-    return Math.round(score);
   };
 
   const getEnhancedRecentActivity = (experiences: any[], cvs: any[], sessions: any[]) => {
@@ -357,7 +331,7 @@ const DashboardPage = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push('/');
+    router.push('/auth');
   };
 
   const markNotificationAsRead = (notificationId: number) => {
@@ -577,11 +551,11 @@ const DashboardPage = () => {
       href: "/interview-practice"
     },
     {
-      icon: Briefcase,
-      title: "Job Matches",
-      description: "Find your perfect role",
+      icon: Search,
+      title: "Job Search",
+      description: "Find and save job opportunities",
       color: "from-green-500 to-emerald-500",
-      href: "/job-matches"
+      href: "/job-search"
     },
     {
       icon: Target,
@@ -1075,10 +1049,10 @@ const DashboardPage = () => {
                     </div>
                   </Link>
                 )}
-                <Link href="/job-matches">
+                <Link href="/job-search">
                   <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
                     <CheckCircle className="w-4 h-4 text-sky-500" />
-                    <span className="text-sm text-slate-700">Apply to relevant jobs</span>
+                    <span className="text-sm text-slate-700">Search and save jobs</span>
                   </div>
                 </Link>
               </div>

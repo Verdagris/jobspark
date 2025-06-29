@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -129,7 +130,12 @@ const applySorting = (jobs: any[], sortOption: string) => {
 
 const JobSearchPage = () => {
   const { user } = useAuth();
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const searchParams = useSearchParams();
+  
+  // Get filter from URL params
+  const urlFilter = searchParams?.get('filter') || 'all';
+  
+  const [selectedFilter, setSelectedFilter] = useState(urlFilter);
   const [searchTerm, setSearchTerm] = useState("");
   const [jobs, setJobs] = useState<any[]>([]);
   const [savedJobs, setSavedJobs] = useState<any[]>([]);
@@ -159,6 +165,12 @@ const JobSearchPage = () => {
     { label: "R80,000+", value: 80000 },
     { label: "R100,000+", value: 100000 },
   ];
+
+  // Update filter when URL changes
+  useEffect(() => {
+    const newFilter = searchParams?.get('filter') || 'all';
+    setSelectedFilter(newFilter);
+  }, [searchParams]);
 
   // Load user CV data and saved jobs
   useEffect(() => {
@@ -397,8 +409,10 @@ const JobSearchPage = () => {
     }
     
     // Navigate to interview practice with job context
-    const practiceUrl = `/interview-practice?jobId=${job.savedJobId}&role=${encodeURIComponent(job.title)}&company=${encodeURIComponent(job.company)}`;
-    window.location.href = practiceUrl;
+    if (typeof window !== 'undefined') {
+      const practiceUrl = `/interview-practice?jobId=${job.savedJobId}&role=${encodeURIComponent(job.title)}&company=${encodeURIComponent(job.company)}`;
+      window.location.href = practiceUrl;
+    }
   };
 
   const handleApplyNow = async (job: any) => {
@@ -494,7 +508,7 @@ const JobSearchPage = () => {
                 </div>
                 <div className="h-8 w-px bg-slate-200 mx-4" />
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg">
+                  <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg shadow-lg">
                     <Briefcase className="w-6 h-6 text-white" />
                   </div>
                   <div>

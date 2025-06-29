@@ -15,6 +15,7 @@ The application is failing because the required database tables don't exist in y
      - `supabase/migrations/20250621150457_pink_sun.sql`
      - `supabase/migrations/20250621160000_interview_sessions.sql`
      - `supabase/migrations/20250621170000_create_user_progress_table.sql`
+     - `supabase/migrations/20250628150000_fix_saved_jobs_schema.sql` (NEW - IMPORTANT!)
    - Paste each one into the SQL Editor and click "Run" to execute
 
 3. **Verify Tables Created**
@@ -29,6 +30,7 @@ The application is failing because the required database tables don't exist in y
      - `cv_versions`
      - `interview_sessions`
      - `user_progress`
+     - `saved_jobs` (with correct schema including `applied_at` column)
 
 ## Alternative Method (if you have Supabase CLI):
 
@@ -49,15 +51,28 @@ supabase db push
 - **cv_versions**: Stores CV version history for undo functionality
 - **interview_sessions**: Stores interview practice session data
 - **user_progress**: Stores user progress tracking and encouragement data
+- **saved_jobs**: Stores saved job listings with application tracking and practice counts
 
 All tables include proper Row Level Security (RLS) policies to ensure users can only access their own data.
 
 ## After Migration:
 
-Once all migrations are applied, refresh your application and the errors should be resolved. The dashboard, onboarding pages, interview practice, and all other features will be able to interact with the database properly.
+Once all migrations are applied, refresh your application and the errors should be resolved. The dashboard, onboarding pages, interview practice, job search, and all other features will be able to interact with the database properly.
 
 ## Important Notes:
 
 - **Execute migrations in order**: The migrations have dependencies, so run them in the order listed above
 - **Check for errors**: If any migration fails, check the error message and ensure previous migrations completed successfully
 - **Backup first**: If you have existing data, consider backing up your database before running migrations
+- **The new migration**: `20250628150000_fix_saved_jobs_schema.sql` fixes the schema mismatch that was causing the job search errors
+
+## Troubleshooting:
+
+If you're still seeing errors after running the migrations:
+
+1. **Check if all tables exist**: Go to Table Editor and verify all tables are present
+2. **Check column names**: Ensure the `saved_jobs` table has the `applied_at` column
+3. **Refresh the application**: Clear your browser cache and refresh the page
+4. **Check browser console**: Look for any remaining database errors
+
+The most important migration to run is the new `20250628150000_fix_saved_jobs_schema.sql` which specifically fixes the job search functionality.

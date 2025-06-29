@@ -1,27 +1,23 @@
-// Import all the components we've built
-import { Header } from "@/components/layout/Header";
-import { Hero } from "@/components/sections/Hero";
-import { TechPartners } from "@/components/sections/TechPartners";
-import { Stats } from "@/components/sections/Stats";
-import { Features } from "@/components/sections/Features";
-import { HowItWorks } from "@/components/sections/HowItWorks";
-import { Testimonials } from "@/components/sections/Testimonials";
-import { CTA } from "@/components/sections/CTA";
-import { Footer } from "@/components/layout/Footer";
+"use client";
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to auth page immediately
+    router.replace('/auth');
+  }, [router]);
+
+  // Show loading while redirecting
   return (
-    // The main container provides the base background color
-    <main className="bg-white text-slate-800 antialiased">
-      <Header />
-      <Hero />
-      <TechPartners />
-      <Stats />
-      <Features />
-      <HowItWorks />
-      <Testimonials />
-      <CTA />
-      <Footer />
-    </main>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex items-center space-x-2">
+        <div className="w-8 h-8 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin"></div>
+        <span className="text-slate-600 font-medium">Loading...</span>
+      </div>
+    </div>
   );
 }

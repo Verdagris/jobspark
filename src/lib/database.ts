@@ -55,6 +55,7 @@ export interface GeneratedCV {
   version: number;
   is_active: boolean;
   cv_name: string | null;
+  saved_job_id: string | null;
   created_at: string;
 }
 
@@ -105,6 +106,29 @@ export interface UserProgress {
   strengths: string[];
   last_session_date: string | null;
   streak_days: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavedJob {
+  id: string;
+  user_id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  description: string | null;
+  requirements: string[] | null;
+  benefits: string[] | null;
+  job_type: string;
+  url: string | null;
+  logo: string | null;
+  is_applied: boolean;
+  applied_at: string | null;
+  practice_count: number;
+  last_practiced_at: string | null;
+  source: 'platform' | 'manual';
   created_at: string;
   updated_at: string;
 }
@@ -434,10 +458,6 @@ export async function createInterviewSession(session: Omit<InterviewSession, 'id
     .single();
 
   if (error) throw error;
-  
-  // Update user progress after creating session
-  await updateUserProgress(session.user_id, session);
-  
   return data;
 }
 
@@ -455,7 +475,7 @@ export async function getInterviewSessionById(id: string): Promise<InterviewSess
 export async function getInterviewInsights(userId: string, limit: number = 5): Promise<any[]> {
   const { data, error } = await supabase
     .from('interview_sessions')
-    .select('role, overall_score, insights, created_at, session_type')
+    .select('role, overall_score, insights, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -466,20 +486,49 @@ export async function getInterviewInsights(userId: string, limit: number = 5): P
 
 // User Progress Functions
 export async function getUserProgress(userId: string): Promise<UserProgress | null> {
-  const { data, error } = await supabase
-    .from('user_progress')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      console.error('Error fetching user progress:', error);
+      // If table doesn't exist, return default progress
+      return {
+        id: '',
+        user_id: userId,
+        total_sessions: 0,
+        total_practice_time: 0,
+        average_score: 0,
+        best_score: 0,
+        sessions_this_week: 0,
+        sessions_this_month: 0,
+        improvement_areas: [],
+        strengths: [],
+        last_session_date: null,
+        streak_days: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getUserProgress:', error);
+    return null;
+  }
 }
 
-export async function createUserProgress(progress: Omit<UserProgress, 'id' | 'created_at' | 'updated_at'>): Promise<UserProgress> {
+export async function updateUserProgress(userId: string, updates: Partial<UserProgress>): Promise<UserProgress> {
   const { data, error } = await supabase
     .from('user_progress')
-    .insert([progress])
+    .upsert({ 
+      user_id: userId, 
+      ...updates, 
+      updated_at: new Date().toISOString() 
+    })
     .select()
     .single();
 
@@ -487,329 +536,262 @@ export async function createUserProgress(progress: Omit<UserProgress, 'id' | 'cr
   return data;
 }
 
-export async function updateUserProgress(userId: string, newSession: Partial<InterviewSession>): Promise<void> {
+// Saved Jobs Functions
+export async function getUserSavedJobs(userId: string): Promise<SavedJob[]> {
   try {
-    // Get current progress
-    let progress = await getUserProgress(userId);
-    
-    // Get all sessions for calculations
+    const { data, error } = await supabase
+      .from('saved_jobs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching saved jobs:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getUserSavedJobs:', error);
+    return [];
+  }
+}
+
+export async function createSavedJob(job: Omit<SavedJob, 'id' | 'created_at' | 'updated_at' | 'practice_count' | 'last_practiced_at'>): Promise<SavedJob> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .insert([{ ...job, practice_count: 0 }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSavedJob(id: string, updates: Partial<SavedJob>): Promise<SavedJob> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSavedJob(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('saved_jobs')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function getSavedJobById(id: string): Promise<SavedJob | null> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function markJobAsApplied(id: string): Promise<SavedJob> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .update({ 
+      is_applied: true, 
+      applied_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getJobsNeedingPractice(userId: string): Promise<SavedJob[]> {
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_applied', false)
+    .lt('practice_count', 3) // Jobs with less than 3 practice sessions
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Career Score Calculation (consistent across dashboard and career score page)
+export function calculateCareerScore(
+  profile: any, 
+  experiences: any[], 
+  skills: any[], 
+  cvs: any[], 
+  interviewSessions: any[],
+  education: any[] = []
+): number {
+  let score = 0;
+  
+  // Profile completeness (25%)
+  let profileScore = 0;
+  if (profile?.full_name) profileScore += 12.5;
+  if (profile?.email) profileScore += 12.5;
+  if (profile?.phone) profileScore += 12.5;
+  if (profile?.location) profileScore += 12.5;
+  if (experiences.length > 0) profileScore += 12.5;
+  if (experiences.length >= 2) profileScore += 12.5;
+  if (education.length > 0) profileScore += 12.5;
+  if (skills.length >= 3) profileScore += 12.5;
+  
+  score += Math.min(100, profileScore) * 0.25;
+  
+  // CV quality (25%)
+  let cvScore = 40;
+  if (cvs.length > 0) cvScore += 30;
+  if (experiences.length >= 2) cvScore += 20;
+  if (skills.length >= 5) cvScore += 10;
+  score += Math.min(100, cvScore) * 0.25;
+  
+  // Interview readiness (25%)
+  let interviewScore = 30;
+  if (interviewSessions.length > 0) {
+    const avgScore = interviewSessions.reduce((sum: number, s: any) => sum + s.overall_score, 0) / interviewSessions.length;
+    interviewScore = avgScore;
+  }
+  score += interviewScore * 0.25;
+  
+  // Market alignment (25%)
+  let marketScore = 60;
+  if (skills.length >= 5) marketScore += 20;
+  if (experiences.length >= 2) marketScore += 20;
+  score += Math.min(100, marketScore) * 0.25;
+  
+  return Math.round(score);
+}
+
+// Encouragement and Recommendations Functions
+export async function getEncouragementMessage(userId: string, sessionType?: string): Promise<string> {
+  try {
+    const progress = await getUserProgress(userId);
     const sessions = await getUserInterviewSessions(userId);
     
-    // Calculate new progress metrics
-    const totalSessions = sessions.length;
-    const totalPracticeTime = sessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
-    const averageScore = sessions.length > 0 ? 
-      Math.round(sessions.reduce((sum, s) => sum + s.overall_score, 0) / sessions.length) : 0;
-    const bestScore = sessions.length > 0 ? 
-      Math.max(...sessions.map(s => s.overall_score)) : 0;
+    if (!progress || sessions.length === 0) {
+      return "Welcome to your interview practice journey! Every expert was once a beginner. Let's start building your confidence one question at a time.";
+    }
     
-    // Calculate sessions this week and month
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    if (progress.streak_days > 0) {
+      return `Amazing! You're on a ${progress.streak_days}-day practice streak. Consistency is the key to mastering interviews. Keep up the fantastic work!`;
+    }
     
-    const sessionsThisWeek = sessions.filter(s => new Date(s.created_at) > weekAgo).length;
-    const sessionsThisMonth = sessions.filter(s => new Date(s.created_at) > monthAgo).length;
+    if (progress.best_score >= 85) {
+      return "You're performing exceptionally well! Your confidence and skills are really showing. You're ready to tackle any interview challenge.";
+    }
     
-    // Calculate improvement areas and strengths from recent sessions
-    const recentSessions = sessions.slice(0, 5);
-    const improvementAreas = extractImprovementAreas(recentSessions);
-    const strengths = extractStrengths(recentSessions);
+    if (progress.sessions_this_week >= 3) {
+      return "Fantastic dedication this week! You've completed your practice goal. This level of commitment will definitely pay off in real interviews.";
+    }
     
-    // Calculate streak
-    const streak = calculateStreak(sessions);
+    return "Every practice session makes you stronger and more confident. You're building valuable skills that will serve you throughout your career.";
+  } catch (error) {
+    console.error('Error getting encouragement message:', error);
+    return "You're doing great! Keep practicing and building your interview confidence.";
+  }
+}
+
+export async function getPostSessionEncouragement(userId: string, score: number, sessionType: string): Promise<string> {
+  try {
+    if (score >= 90) {
+      return "Outstanding performance! You're demonstrating excellent interview skills. You should feel very confident about your abilities.";
+    }
     
-    const progressData = {
-      user_id: userId,
-      total_sessions: totalSessions,
-      total_practice_time: totalPracticeTime,
-      average_score: averageScore,
-      best_score: bestScore,
-      sessions_this_week: sessionsThisWeek,
-      sessions_this_month: sessionsThisMonth,
-      improvement_areas: improvementAreas,
-      strengths: strengths,
-      last_session_date: sessions.length > 0 ? sessions[0].created_at : null,
-      streak_days: streak,
-      updated_at: new Date().toISOString()
+    if (score >= 80) {
+      return "Great job! You're showing strong interview skills. With a little more practice, you'll be unstoppable.";
+    }
+    
+    if (score >= 70) {
+      return "Good work! You're making solid progress. Each practice session is building your confidence and improving your responses.";
+    }
+    
+    if (score >= 60) {
+      return "You're on the right track! Remember, every professional started somewhere. Keep practicing and you'll see improvement.";
+    }
+    
+    return "Don't be discouraged! Interview skills take time to develop. The fact that you're practicing shows you're committed to improvement.";
+  } catch (error) {
+    console.error('Error getting post-session encouragement:', error);
+    return "Great job completing the practice session! Every attempt makes you better.";
+  }
+}
+
+export async function getSessionRecommendations(userId: string): Promise<any> {
+  try {
+    const [progress, sessions] = await Promise.all([
+      getUserProgress(userId),
+      getUserInterviewSessions(userId)
+    ]);
+    
+    const recommendations = {
+      recommended: [] as string[],
+      reasons: [] as string[]
     };
     
-    if (progress) {
-      // Update existing progress
-      const { error } = await supabase
-        .from('user_progress')
-        .update(progressData)
-        .eq('user_id', userId);
-      
-      if (error) throw error;
-    } else {
-      // Create new progress record
-      await createUserProgress(progressData);
+    if (!progress || sessions.length === 0) {
+      recommendations.recommended = ['introduction', 'experience'];
+      recommendations.reasons = [
+        'Start with introduction practice to build confidence',
+        'Practice talking about your experience'
+      ];
+      return recommendations;
     }
-  } catch (error) {
-    console.error('Error updating user progress:', error);
-    // Don't throw error to prevent session creation from failing
-  }
-}
-
-// Helper functions for progress calculation
-function extractImprovementAreas(sessions: InterviewSession[]): string[] {
-  const areas: { [key: string]: number } = {};
-  
-  sessions.forEach(session => {
-    if (session.insights?.areasForImprovement) {
-      session.insights.areasForImprovement.forEach((area: string) => {
-        const key = area.toLowerCase();
-        areas[key] = (areas[key] || 0) + 1;
-      });
-    }
-  });
-  
-  // Return top 3 most common improvement areas
-  return Object.entries(areas)
-    .sort(([,a], [,b]) => b - a)
-    .slice(0, 3)
-    .map(([area]) => area);
-}
-
-function extractStrengths(sessions: InterviewSession[]): string[] {
-  const strengths: { [key: string]: number } = {};
-  
-  sessions.forEach(session => {
-    if (session.insights?.strengths) {
-      session.insights.strengths.forEach((strength: string) => {
-        const key = strength.toLowerCase();
-        strengths[key] = (strengths[key] || 0) + 1;
-      });
-    }
-  });
-  
-  // Return top 3 most common strengths
-  return Object.entries(strengths)
-    .sort(([,a], [,b]) => b - a)
-    .slice(0, 3)
-    .map(([strength]) => strength);
-}
-
-function calculateStreak(sessions: InterviewSession[]): number {
-  if (sessions.length === 0) return 0;
-  
-  const sessionDates = sessions
-    .map(s => new Date(s.created_at).toDateString())
-    .filter((date, index, arr) => arr.indexOf(date) === index) // Remove duplicates
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  
-  let streak = 0;
-  const today = new Date().toDateString();
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
-  
-  // Check if user practiced today or yesterday
-  if (sessionDates[0] === today || sessionDates[0] === yesterday) {
-    streak = 1;
     
-    // Count consecutive days
-    for (let i = 1; i < sessionDates.length; i++) {
-      const currentDate = new Date(sessionDates[i-1]);
-      const nextDate = new Date(sessionDates[i]);
-      const dayDiff = Math.floor((currentDate.getTime() - nextDate.getTime()) / (24 * 60 * 60 * 1000));
-      
-      if (dayDiff === 1) {
-        streak++;
-      } else {
-        break;
-      }
+    // Analyze session types practiced
+    const sessionTypes = sessions.map(s => s.session_type || 'mock-interview');
+    const typeCount = sessionTypes.reduce((acc, type) => {
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    // Recommend based on what hasn't been practiced much
+    if ((typeCount['behavioral'] || 0) < 2) {
+      recommendations.recommended.push('experience');
+      recommendations.reasons.push('Practice behavioral questions using the STAR method');
     }
-  }
-  
-  return streak;
-}
-
-// Get user's practice history for encouragement
-export async function getUserPracticeHistory(userId: string): Promise<{
-  progress: UserProgress | null;
-  recentSessions: InterviewSession[];
-  lastSession: InterviewSession | null;
-  improvementFromLastSession: number | null;
-}> {
-  const [progress, sessions] = await Promise.all([
-    getUserProgress(userId),
-    getUserInterviewSessions(userId)
-  ]);
-  
-  const recentSessions = sessions.slice(0, 5);
-  const lastSession = sessions.length > 0 ? sessions[0] : null;
-  
-  // Calculate improvement from last session
-  let improvementFromLastSession = null;
-  if (sessions.length >= 2) {
-    const currentScore = sessions[0].overall_score;
-    const previousScore = sessions[1].overall_score;
-    improvementFromLastSession = currentScore - previousScore;
-  }
-  
-  return {
-    progress,
-    recentSessions,
-    lastSession,
-    improvementFromLastSession
-  };
-}
-
-// Get personalized encouragement message
-export async function getEncouragementMessage(userId: string, sessionType?: string): Promise<string> {
-  const history = await getUserPracticeHistory(userId);
-  const { progress, lastSession, improvementFromLastSession } = history;
-  
-  if (!progress || progress.total_sessions === 0) {
-    return "Welcome to your interview practice journey! I'm excited to help you build confidence and improve your interview skills. Let's start strong! 🚀";
-  }
-  
-  // Generate contextual encouragement based on history
-  const messages = [];
-  
-  // Weekly activity encouragement
-  if (progress.sessions_this_week >= 3) {
-    messages.push(`Amazing! You've practiced ${progress.sessions_this_week} times this week - you're really committed to improving! 🔥`);
-  } else if (progress.sessions_this_week === 1) {
-    messages.push("You've practiced once this week. Why not try another session to keep the momentum going?");
-  } else if (progress.sessions_this_week === 0) {
-    messages.push("Let's get back into practice mode! A quick session today will help maintain your interview skills.");
-  }
-  
-  // Improvement tracking
-  if (lastSession && improvementFromLastSession !== null) {
-    if (improvementFromLastSession > 5) {
-      messages.push(`Last time you scored ${lastSession.overall_score}% - that's a fantastic ${improvementFromLastSession} point improvement! 📈`);
-    } else if (improvementFromLastSession > 0) {
-      messages.push(`Great progress! You improved by ${improvementFromLastSession} points in your last session.`);
+    
+    if ((typeCount['strengths-weaknesses'] || 0) < 1) {
+      recommendations.recommended.push('strengths-weaknesses');
+      recommendations.reasons.push('Work on self-assessment and growth mindset questions');
     }
-  }
-  
-  // Focus areas from last session
-  if (lastSession?.insights?.areasForImprovement?.length > 0) {
-    const mainArea = lastSession.insights.areasForImprovement[0];
-    messages.push(`Last time, your main focus area was ${mainArea.toLowerCase()}. Let's work on that today - you've got this! 💪`);
-  }
-  
-  // Streak encouragement
-  if (progress.streak_days > 1) {
-    messages.push(`You're on a ${progress.streak_days}-day practice streak! Keep it going! 🔥`);
-  }
-  
-  // Session type specific encouragement
-  if (sessionType && lastSession?.session_type === sessionType) {
-    messages.push(`You practiced ${sessionType.replace('-', ' ')} before. Let's see how much you've improved!`);
-  }
-  
-  // Default encouraging message
-  if (messages.length === 0) {
-    messages.push("Ready for another great practice session? Let's continue building your interview confidence!");
-  }
-  
-  return messages.join(' ');
-}
-
-// Get post-session encouragement
-export async function getPostSessionEncouragement(
-  userId: string, 
-  currentScore: number, 
-  sessionType: string
-): Promise<string> {
-  const history = await getUserPracticeHistory(userId);
-  const { progress, lastSession, improvementFromLastSession } = history;
-  
-  const messages = [];
-  
-  // Score-based encouragement
-  if (currentScore >= 85) {
-    messages.push("Outstanding performance! You're interview-ready! 🌟");
-  } else if (currentScore >= 75) {
-    messages.push("Great job! You're showing strong interview skills.");
-  } else if (currentScore >= 65) {
-    messages.push("Good work! You're making solid progress.");
-  } else {
-    messages.push("Nice effort! Every practice session makes you stronger.");
-  }
-  
-  // Improvement comparison
-  if (improvementFromLastSession !== null && improvementFromLastSession > 0) {
-    messages.push(`That's a ${improvementFromLastSession} point improvement from last time - excellent progress! 📈`);
-  } else if (improvementFromLastSession !== null && improvementFromLastSession < -5) {
-    messages.push("Don't worry about the score dip - consistency in practice is what matters most. You're building valuable skills!");
-  }
-  
-  // Session count milestone
-  if (progress) {
-    if (progress.total_sessions === 5) {
-      messages.push("🎉 Congratulations! You've completed 5 practice sessions - you're building real expertise!");
-    } else if (progress.total_sessions === 10) {
-      messages.push("🎉 Amazing milestone! 10 practice sessions completed - you're becoming an interview pro!");
-    } else if (progress.total_sessions % 10 === 0) {
-      messages.push(`🎉 Incredible! ${progress.total_sessions} practice sessions completed - your dedication is inspiring!`);
+    
+    if ((typeCount['salary'] || 0) < 1) {
+      recommendations.recommended.push('salary');
+      recommendations.reasons.push('Practice salary negotiation and compensation discussions');
     }
-  }
-  
-  return messages.join(' ');
-}
-
-// Get next session recommendations
-export async function getSessionRecommendations(userId: string): Promise<{
-  recommended: string[];
-  reasons: string[];
-}> {
-  const history = await getUserPracticeHistory(userId);
-  const { progress, recentSessions } = history;
-  
-  const recommendations = [];
-  const reasons = [];
-  
-  if (!progress || progress.total_sessions === 0) {
+    
+    // If recent scores are low, recommend fundamentals
+    const recentSessions = sessions.slice(0, 3);
+    const avgRecentScore = recentSessions.length > 0 
+      ? recentSessions.reduce((sum, s) => sum + s.overall_score, 0) / recentSessions.length 
+      : 0;
+    
+    if (avgRecentScore < 70) {
+      recommendations.recommended.unshift('introduction');
+      recommendations.reasons.unshift('Build confidence with introduction practice');
+    }
+    
+    return recommendations;
+  } catch (error) {
+    console.error('Error getting session recommendations:', error);
     return {
       recommended: ['introduction', 'experience'],
-      reasons: ['Start with introduction practice to build confidence', 'Practice talking about your experience']
+      reasons: ['Start with introduction practice', 'Practice talking about your experience']
     };
   }
-  
-  // Analyze recent session types
-  const recentTypes = recentSessions.map(s => s.session_type);
-  const typeCounts = recentTypes.reduce((acc, type) => {
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {} as { [key: string]: number });
-  
-  // Recommend based on improvement areas
-  if (progress.improvement_areas.includes('communication')) {
-    recommendations.push('introduction');
-    reasons.push('Work on communication skills with introduction practice');
-  }
-  
-  if (progress.improvement_areas.includes('experience') || progress.improvement_areas.includes('examples')) {
-    recommendations.push('experience');
-    reasons.push('Practice articulating your experience better');
-  }
-  
-  if (progress.improvement_areas.includes('weaknesses') || progress.improvement_areas.includes('strengths')) {
-    recommendations.push('strengths-weaknesses');
-    reasons.push('Focus on self-assessment and growth mindset');
-  }
-  
-  // Recommend less practiced areas
-  const allTypes = ['introduction', 'experience', 'strengths-weaknesses', 'salary', 'job-specific', 'mock-interview'];
-  const leastPracticed = allTypes.filter(type => !typeCounts[type] || typeCounts[type] < 2);
-  
-  if (leastPracticed.length > 0) {
-    recommendations.push(...leastPracticed.slice(0, 2));
-    reasons.push(...leastPracticed.slice(0, 2).map(type => `Try ${type.replace('-', ' ')} practice for well-rounded skills`));
-  }
-  
-  // If user is advanced, recommend mock interviews
-  if (progress.average_score >= 75 && !recentTypes.includes('mock-interview')) {
-    recommendations.push('mock-interview');
-    reasons.push('You\'re ready for a full mock interview challenge!');
-  }
-  
-  return {
-    recommended: recommendations.slice(0, 3),
-    reasons: reasons.slice(0, 3)
-  };
 }
