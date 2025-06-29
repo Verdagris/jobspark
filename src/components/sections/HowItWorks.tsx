@@ -36,11 +36,11 @@ const MobileStep = ({ step, index }: { step: any, index: number }) => {
     >
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/80 shadow-lg">
         <div className="flex items-center space-x-4 mb-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-sky-500 to-blue-500 flex items-center justify-center shadow-lg">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-sa-green to-sa-gold flex items-center justify-center shadow-lg">
             <step.icon className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">
-            <div className="text-sm font-medium text-sky-600 mb-1">Step {index + 1}</div>
+            <div className="text-sm font-medium text-sa-green mb-1">Step {index + 1}</div>
             <h3 className="text-lg font-bold text-slate-800">{step.title}</h3>
           </div>
         </div>
@@ -48,7 +48,7 @@ const MobileStep = ({ step, index }: { step: any, index: number }) => {
         <div className="space-y-2">
           {step.features.map((feature: string, idx: number) => (
             <div key={idx} className="flex items-center space-x-2">
-              <div className="w-1.5 h-1.5 bg-sky-500 rounded-full" />
+              <div className="w-1.5 h-1.5 bg-sa-green rounded-full" />
               <span className="text-sm text-slate-600">{feature}</span>
             </div>
           ))}
@@ -56,7 +56,7 @@ const MobileStep = ({ step, index }: { step: any, index: number }) => {
       </div>
       {index < steps.length - 1 && (
         <div className="flex justify-center my-6">
-          <ArrowRight className="w-6 h-6 text-sky-400" />
+          <ArrowRight className="w-6 h-6 text-sa-green" />
         </div>
       )}
     </motion.div>
@@ -104,14 +104,14 @@ const TimelineStep = ({ step, index }: { step: any, index: number }) => {
                     <motion.div variants={cardVariants} className={`w-full ${isReversed ? 'pl-8' : 'pr-8'}`}>
                         <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl border border-slate-200/80 shadow-lg hover:shadow-xl transition-shadow duration-300">
                             <div className="flex items-center space-x-3 mb-3">
-                              <div className="text-sm font-medium text-sky-600">Step {index + 1}</div>
+                              <div className="text-sm font-medium text-sa-green">Step {index + 1}</div>
                             </div>
                             <h3 className="text-xl font-bold text-slate-800 mb-3">{step.title}</h3>
                             <p className="text-slate-600 leading-relaxed mb-4">{step.description}</p>
                             <div className="space-y-2">
                               {step.features.map((feature: string, idx: number) => (
                                 <div key={idx} className="flex items-center space-x-2">
-                                  <div className="w-1.5 h-1.5 bg-sky-500 rounded-full" />
+                                  <div className="w-1.5 h-1.5 bg-sa-green rounded-full" />
                                   <span className="text-sm text-slate-600">{feature}</span>
                                 </div>
                               ))}
@@ -123,9 +123,9 @@ const TimelineStep = ({ step, index }: { step: any, index: number }) => {
             </div>
             
             <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full flex items-start justify-center">
-                 <motion.div variants={markerVariants} className="relative w-12 h-12 rounded-full bg-gradient-to-r from-sky-500 to-blue-500 flex items-center justify-center border-4 border-white shadow-lg z-10">
+                 <motion.div variants={markerVariants} className="relative w-12 h-12 rounded-full bg-gradient-to-r from-sa-green to-sa-gold flex items-center justify-center border-4 border-white shadow-lg z-10">
                     <step.icon className="w-6 h-6 text-white" />
-                    <motion.div variants={markerGlowVariants} className="absolute w-full h-full bg-sky-500 rounded-full blur-lg" />
+                    <motion.div variants={markerGlowVariants} className="absolute w-full h-full bg-sa-green rounded-full blur-lg" />
                 </motion.div>
             </div>
         </motion.div>
@@ -175,7 +175,7 @@ export const HowItWorks = () => {
             <div className="absolute left-1/2 -translate-x-1/2 top-6 bottom-6 w-1 bg-slate-200" />
             <motion.div 
                 style={{ height: isClient ? timelineHeight : "0%" }}
-                className="absolute left-1/2 -translate-x-1/2 top-6 w-1 bg-gradient-to-b from-sky-500 to-blue-500" 
+                className="absolute left-1/2 -translate-x-1/2 top-6 w-1 bg-gradient-to-b from-sa-green to-sa-gold" 
             />
             
             <div className="flex flex-col gap-y-24">

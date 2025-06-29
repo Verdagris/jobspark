@@ -24,10 +24,10 @@ const itemVariants: Variants = {
 
 export const Stats = () => {
   const stats = [
-    { value: 12500, label: "Careers Launched", icon: Zap, color: "from-yellow-400 to-orange-500" },
-    { value: 650, label: "Partner Companies", icon: Building2, color: "from-blue-400 to-cyan-500" },
-    { value: 92, suffix: "%", label: "Success Rate", icon: TrendingUp, color: "from-green-400 to-emerald-500" },
-    { value: 4.9, suffix: "/5", label: "User Rating", icon: Star, precision: 1, color: "from-purple-400 to-pink-500" },
+    { value: 12500, label: "Careers Launched", icon: Zap, color: "from-sa-gold to-sa-gold-dark" },
+    { value: 650, label: "Partner Companies", icon: Building2, color: "from-sa-green to-sa-green-dark" },
+    { value: 92, suffix: "%", label: "Success Rate", icon: TrendingUp, color: "from-sa-green-light to-sa-green" },
+    { value: 4.9, suffix: "/5", label: "User Rating", icon: Star, precision: 1, color: "from-sa-gold-light to-sa-gold" },
   ];
 
   return (
@@ -63,7 +63,7 @@ export const Stats = () => {
               className="relative group"
             >
               {/* Simplified background glow */}
-              <div className="absolute -inset-1 bg-gradient-to-br from-sky-100 to-indigo-100 rounded-2xl opacity-0 group-hover:opacity-50 transition-opacity duration-300 blur-sm"></div>
+              <div className="absolute -inset-1 bg-gradient-to-br from-sa-green/10 to-sa-gold/10 rounded-2xl opacity-0 group-hover:opacity-50 transition-opacity duration-300 blur-sm"></div>
               
               <motion.div 
                 whileHover={{ scale: 1.02 }}

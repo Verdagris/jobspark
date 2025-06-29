@@ -78,7 +78,7 @@ export const Header = () => {
       >
         {/* Left Side: Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-sky-500 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
+          <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-sa-green drop-shadow-[0_0_8px_rgba(0,122,61,0.5)]" />
           <span className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             JobSpark
           </span>
@@ -98,7 +98,7 @@ export const Header = () => {
               onMouseEnter={() => setHoveredLink(link.name)}
             >
               <span className="relative z-10 flex items-center">
-                <link.icon className="w-4 h-4 mr-2 text-slate-400 group-hover:text-sky-500 transition-colors" />
+                <link.icon className="w-4 h-4 mr-2 text-slate-400 group-hover:text-sa-green transition-colors" />
                 {link.name}
               </span>
               {hoveredLink === link.name && (
@@ -189,7 +189,7 @@ export const Header = () => {
                 </button>
               </Link>
               <Link href="/auth" className="block">
-                <button className="w-full bg-sky-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-sky-600 transition-colors">
+                <button className="w-full bg-sa-green text-white px-4 py-3 rounded-lg font-semibold hover:bg-sa-green-dark transition-colors">
                   Get Started
                 </button>
               </Link>

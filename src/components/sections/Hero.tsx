@@ -64,7 +64,7 @@ const FlipButton = ({
       href={href}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
-      className="relative flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 font-semibold text-slate-800 bg-white/90 backdrop-blur-sm border-2 border-slate-200 hover:border-sky-300 transition-all duration-300 rounded-xl overflow-hidden shadow-md hover:shadow-lg"
+      className="relative flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 font-semibold text-slate-800 bg-white/90 backdrop-blur-sm border-2 border-slate-200 hover:border-sa-green transition-all duration-300 rounded-xl overflow-hidden shadow-md hover:shadow-lg"
       style={{ perspective: "500px" }}
     >
       <AnimatePresence mode="wait">
@@ -86,7 +86,7 @@ const FlipButton = ({
             animate={{ rotateY: 0, opacity: 1 }}
             exit={{ rotateY: -90, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="flex items-center gap-2 text-sky-500 text-base sm:text-lg"
+            className="flex items-center gap-2 text-sa-green text-base sm:text-lg"
           >
             <ExternalLink className="w-5 h-5" />
             <span>Learn More</span>
@@ -107,25 +107,25 @@ const animationScenes = [
     content: (
       <div className="space-y-3 w-full">
         <motion.div 
-          className="h-3 w-full bg-gradient-to-r from-sky-200 to-sky-400 rounded-full"
+          className="h-3 w-full bg-gradient-to-r from-sa-green-light to-sa-green rounded-full"
           initial={{ width: 0 }}
           animate={{ width: "100%" }}
           transition={{ duration: 1.5, ease: "easeOut" }}
         />
         <motion.div 
-          className="h-3 w-4/5 bg-gradient-to-r from-blue-200 to-blue-400 rounded-full"
+          className="h-3 w-4/5 bg-gradient-to-r from-sa-gold-light to-sa-gold rounded-full"
           initial={{ width: 0 }}
           animate={{ width: "80%" }}
           transition={{ duration: 1.5, delay: 0.2, ease: "easeOut" }}
         />
         <motion.div 
-          className="h-3 w-full bg-gradient-to-r from-indigo-200 to-indigo-400 rounded-full"
+          className="h-3 w-full bg-gradient-to-r from-sa-green to-sa-green-dark rounded-full"
           initial={{ width: 0 }}
           animate={{ width: "100%" }}
           transition={{ duration: 1.5, delay: 0.4, ease: "easeOut" }}
         />
         <motion.div 
-          className="h-3 w-3/4 bg-gradient-to-r from-purple-200 to-purple-400 rounded-full"
+          className="h-3 w-3/4 bg-gradient-to-r from-sa-gold to-sa-gold-dark rounded-full"
           initial={{ width: 0 }}
           animate={{ width: "75%" }}
           transition={{ duration: 1.5, delay: 0.6, ease: "easeOut" }}
@@ -144,25 +144,25 @@ const animationScenes = [
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3, type: "spring" }}
-          className="bg-gradient-to-r from-indigo-100 to-purple-100 p-4 rounded-lg border border-indigo-200"
+          className="bg-gradient-to-r from-sa-green/10 to-sa-gold/10 p-4 rounded-lg border border-sa-green/20"
         >
-          <p className="text-sm font-medium text-indigo-700 mb-2">
+          <p className="text-sm font-medium text-sa-green-dark mb-2">
             "Tell me about a challenging project you worked on."
           </p>
           <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs text-green-600 font-medium">Listening...</span>
+            <div className="w-2 h-2 bg-sa-green rounded-full animate-pulse" />
+            <span className="text-xs text-sa-green-dark font-medium">Listening...</span>
           </div>
         </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.5 }}
-          className="bg-green-50 p-3 rounded-lg border border-green-200"
+          className="bg-sa-green/10 p-3 rounded-lg border border-sa-green/20"
         >
           <div className="flex items-center space-x-2">
-            <CheckCircle className="w-4 h-4 text-green-600" />
-            <span className="text-xs text-green-700 font-medium">Great structure! Score: 85%</span>
+            <CheckCircle className="w-4 h-4 text-sa-green" />
+            <span className="text-xs text-sa-green-dark font-medium">Great structure! Score: 85%</span>
           </div>
         </motion.div>
       </div>
@@ -181,11 +181,11 @@ const animationScenes = [
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.2, duration: 0.5 }}
-            className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200"
+            className="flex items-center justify-between bg-gradient-to-r from-sa-green/10 to-sa-gold/10 p-3 rounded-lg border border-sa-green/20"
           >
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <Briefcase className="w-4 h-4 text-green-600" />
+              <div className="w-8 h-8 bg-sa-green/20 rounded-full flex items-center justify-center">
+                <Briefcase className="w-4 h-4 text-sa-green" />
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-800">Company {i}</p>
@@ -193,8 +193,8 @@ const animationScenes = [
               </div>
             </div>
             <div className="flex items-center space-x-1">
-              <Star className="w-4 h-4 text-yellow-400 fill-current" />
-              <span className="text-sm font-bold text-green-600">{95 - i * 3}%</span>
+              <Star className="w-4 h-4 text-sa-gold fill-current" />
+              <span className="text-sm font-bold text-sa-green">{95 - i * 3}%</span>
             </div>
           </motion.div>
         ))}
@@ -231,10 +231,10 @@ export const Hero = () => {
       <div className="absolute inset-0 z-0">
         {/* The Grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px] sm:bg-[size:36px_36px] opacity-20 sm:opacity-30" />
-        {/* Simplified Aurora */}
+        {/* Simplified Aurora with SA colors */}
         <div className="absolute inset-0 opacity-30 sm:opacity-40">
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,_#bae6fd_0%,_transparent_40%)]" />
-          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_#c7d2fe_0%,_transparent_45%)]" />
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_left,_#00A651_0%,_transparent_40%)]" />
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_#FFB612_0%,_transparent_45%)]" />
         </div>
       </div>
 
@@ -249,9 +249,9 @@ export const Hero = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="inline-flex items-center bg-gradient-to-r from-sky-100 to-blue-100 text-sky-800 font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm mb-4 sm:mb-6 border border-sky-200 shadow-sm"
+            className="inline-flex items-center bg-gradient-to-r from-sa-green/10 to-sa-gold/10 text-sa-green-dark font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm mb-4 sm:mb-6 border border-sa-green/20 shadow-sm"
           >
-            <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-yellow-400 fill-current" />
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-sa-gold fill-current" />
             <span className="hidden sm:inline">Voted #1 Platform for Career Growth</span>
             <span className="sm:hidden">#1 Career Platform</span>
           </motion.div>
@@ -263,7 +263,7 @@ export const Hero = () => {
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tighter text-slate-900 mb-4 sm:mb-6 leading-tight"
           >
             Your Intelligent <br className="hidden sm:block" />
-            <span className="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-sa-green via-sa-green-light to-sa-gold bg-clip-text text-transparent">
               Career Co-Pilot
             </span>
           </motion.h1>
@@ -301,15 +301,15 @@ export const Hero = () => {
             transition={{ delay: 0.8, duration: 0.5 }}
           >
             <div className="flex items-center space-x-1">
-              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-sa-green" />
               <span>Free to start</span>
             </div>
             <div className="flex items-center space-x-1">
-              <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
+              <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-sa-gold" />
               <span>AI-powered</span>
             </div>
             <div className="flex items-center space-x-1">
-              <Star className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+              <Star className="w-3 h-3 sm:w-4 sm:h-4 text-sa-green" />
               <span>12,500+ users</span>
             </div>
           </motion.div>
@@ -323,7 +323,7 @@ export const Hero = () => {
           whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
           className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg mx-auto aspect-[4/3] order-1 lg:order-2"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-sky-200 via-blue-200 to-indigo-200 rounded-2xl sm:rounded-3xl opacity-20 sm:opacity-30 blur-xl sm:blur-2xl"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-sa-green/20 via-sa-gold/20 to-sa-green/20 rounded-2xl sm:rounded-3xl opacity-20 sm:opacity-30 blur-xl sm:blur-2xl"></div>
           <div className="relative w-full h-full bg-white/70 sm:bg-white/60 backdrop-blur-xl border-2 border-white/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl sm:shadow-2xl shadow-slate-400/20 flex flex-col items-center justify-center text-center">
             <AnimatePresence mode="wait">
               <motion.div
@@ -343,7 +343,7 @@ export const Hero = () => {
                     ease: "easeInOut",
                   }}
                 >
-                  <CurrentIcon className="w-6 h-6 sm:w-8 sm:h-8 text-sky-500" />
+                  <CurrentIcon className="w-6 h-6 sm:w-8 sm:h-8 text-sa-green" />
                 </motion.div>
                 <div className="text-center">
                   <p className="font-bold text-slate-800 text-sm sm:text-lg mb-1">
@@ -365,7 +365,7 @@ export const Hero = () => {
                 <div
                   key={index}
                   className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300 ${
-                    index === sceneIndex ? 'bg-sky-500 w-4 sm:w-6' : 'bg-slate-300'
+                    index === sceneIndex ? 'bg-sa-green w-4 sm:w-6' : 'bg-slate-300'
                   }`}
                 />
               ))}

@@ -10,12 +10,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Define our neon colors for reusability
-        "neon-cyan": "#00FFFF",
-        "neon-magenta": "#FF00FF",
-        // Define RGB versions for use in box-shadows or drop-shadows
-        "neon-cyan-rgb": "0, 255, 255",
-        "neon-magenta-rgb": "255, 0, 255",
+        // South African inspired colors
+        "sa-green": "#007A3D",
+        "sa-green-light": "#00A651", 
+        "sa-green-dark": "#005A2D",
+        "sa-gold": "#FFB612",
+        "sa-gold-light": "#FFC843",
+        "sa-gold-dark": "#E6A000",
+        // RGB versions for use in box-shadows or drop-shadows
+        "sa-green-rgb": "0, 122, 61",
+        "sa-gold-rgb": "255, 182, 18",
       },
       animation: {
         // Aurora-like animation for background gradients

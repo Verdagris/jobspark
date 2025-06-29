@@ -13,7 +13,7 @@ const CVVisual = () => (
         animate={{ opacity: 1, transition: { delay: 0.2 } }}
         className="flex items-center space-x-2 mb-4"
     >
-      <FileText className="w-5 h-5 text-sky-500" />
+      <FileText className="w-5 h-5 text-sa-green" />
       <p className="font-bold text-slate-800 text-sm sm:text-lg">AI Generating CV...</p>
     </motion.div>
     <motion.div
@@ -27,7 +27,7 @@ const CVVisual = () => (
         {[...Array(4)].map((_, i) => (
             <motion.div 
                 key={i}
-                className="h-2 sm:h-3 rounded-full bg-gradient-to-r from-sky-200 to-indigo-200"
+                className="h-2 sm:h-3 rounded-full bg-gradient-to-r from-sa-green/30 to-sa-gold/30"
                 variants={{
                     hidden: { opacity: 0, width: "0%" },
                     visible: { opacity: 1, width: i % 2 === 0 ? "100%" : "85%" }
@@ -40,10 +40,10 @@ const CVVisual = () => (
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 1.5 }}
-      className="mt-4 flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg"
+      className="mt-4 flex items-center space-x-2 bg-sa-green/10 px-3 py-2 rounded-lg"
     >
-      <CheckCircle className="w-4 h-4 text-green-600" />
-      <span className="text-xs sm:text-sm text-green-700 font-medium">CV Generated Successfully!</span>
+      <CheckCircle className="w-4 h-4 text-sa-green" />
+      <span className="text-xs sm:text-sm text-sa-green-dark font-medium">CV Generated Successfully!</span>
     </motion.div>
   </div>
 );
@@ -53,32 +53,32 @@ const InterviewVisual = () => (
     <motion.div 
       initial={{ scale: 0 }} 
       animate={{ scale: 1 }} 
-      className="mb-4 p-3 sm:p-4 bg-indigo-100 rounded-full"
+      className="mb-4 p-3 sm:p-4 bg-sa-green/10 rounded-full"
     >
-      <Mic className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-500" />
+      <Mic className="w-6 h-6 sm:w-8 sm:h-8 text-sa-green" />
     </motion.div>
     <motion.div
       initial={{ opacity: 0, y: 10 }} 
       animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}
       className="text-center space-y-3"
     >
-      <p className="text-xs sm:text-sm font-medium text-indigo-700 bg-indigo-100 px-3 py-2 rounded-lg">
+      <p className="text-xs sm:text-sm font-medium text-sa-green-dark bg-sa-green/10 px-3 py-2 rounded-lg">
         "Tell me about a time you showed leadership."
       </p>
       <div className="flex items-center justify-center space-x-2">
-        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-        <span className="text-xs text-green-600 font-medium">Listening...</span>
+        <div className="w-2 h-2 bg-sa-green rounded-full animate-pulse" />
+        <span className="text-xs text-sa-green-dark font-medium">Listening...</span>
       </div>
     </motion.div>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 1 }}
-      className="mt-4 bg-green-50 px-3 py-2 rounded-lg"
+      className="mt-4 bg-sa-green/10 px-3 py-2 rounded-lg"
     >
       <div className="flex items-center space-x-2">
-        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-        <span className="text-xs sm:text-sm text-green-700 font-medium">Score: 88%</span>
+        <Star className="w-4 h-4 text-sa-gold fill-current" />
+        <span className="text-xs sm:text-sm text-sa-green-dark font-medium">Score: 88%</span>
       </div>
     </motion.div>
   </div>
@@ -87,7 +87,7 @@ const InterviewVisual = () => (
 const ConnectionsVisual = () => (
     <div className="w-full h-full p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center bg-white shadow-lg rounded-xl sm:rounded-2xl">
         <div className="flex items-center space-x-2 mb-6">
-          <Briefcase className="w-5 h-5 text-green-600" />
+          <Briefcase className="w-5 h-5 text-sa-green" />
           <p className="font-bold text-slate-800 text-sm sm:text-lg">Finding Perfect Matches...</p>
         </div>
         
@@ -98,7 +98,7 @@ const ConnectionsVisual = () => (
                 role: "Senior Software Engineer",
                 location: "Cape Town",
                 logo: "T", 
-                bgColor: "bg-blue-500", 
+                bgColor: "bg-sa-green", 
                 textColor: "text-white", 
                 score: 95,
                 salary: "R65k - R95k"
@@ -108,7 +108,7 @@ const ConnectionsVisual = () => (
                 role: "Product Manager",
                 location: "Johannesburg", 
                 logo: "D", 
-                bgColor: "bg-green-500", 
+                bgColor: "bg-sa-gold", 
                 textColor: "text-white", 
                 score: 92,
                 salary: "R75k - R110k"
@@ -118,7 +118,7 @@ const ConnectionsVisual = () => (
                 role: "Data Scientist",
                 location: "Johannesburg",
                 logo: "S", 
-                bgColor: "bg-red-500", 
+                bgColor: "bg-sa-green-dark", 
                 textColor: "text-white", 
                 score: 89,
                 salary: "R60k - R90k"
@@ -147,9 +147,9 @@ const ConnectionsVisual = () => (
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-1 bg-green-50 px-2 py-1 rounded-full">
-                            <Star className="w-3 h-3 text-green-600 fill-current" />
-                            <span className="text-xs font-bold text-green-600">{company.score}%</span>
+                        <div className="flex items-center space-x-1 bg-sa-green/10 px-2 py-1 rounded-full">
+                            <Star className="w-3 h-3 text-sa-green fill-current" />
+                            <span className="text-xs font-bold text-sa-green">{company.score}%</span>
                         </div>
                     </div>
                     
@@ -158,7 +158,7 @@ const ConnectionsVisual = () => (
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="text-xs bg-sky-500 text-white px-3 py-1 rounded-full hover:bg-sky-600 transition-colors"
+                            className="text-xs bg-sa-green text-white px-3 py-1 rounded-full hover:bg-sa-green-dark transition-colors"
                         >
                             Apply
                         </motion.button>
@@ -171,10 +171,10 @@ const ConnectionsVisual = () => (
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="mt-4 flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg"
+          className="mt-4 flex items-center space-x-2 bg-sa-green/10 px-3 py-2 rounded-lg"
         >
-          <Users className="w-4 h-4 text-green-600" />
-          <span className="text-xs sm:text-sm text-green-700 font-medium">3 Perfect Matches Found!</span>
+          <Users className="w-4 h-4 text-sa-green" />
+          <span className="text-xs sm:text-sm text-sa-green-dark font-medium">3 Perfect Matches Found!</span>
         </motion.div>
     </div>
 );
@@ -193,10 +193,10 @@ const ScoreVisual = () => {
         <div className="w-full h-full p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center bg-white shadow-lg rounded-xl sm:rounded-2xl">
             <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-4">
                 <svg className="w-full h-full" viewBox="0 0 80 80">
-                    <circle cx="40" cy="40" r="35" className="stroke-amber-100" strokeWidth="8" fill="none" />
+                    <circle cx="40" cy="40" r="35" className="stroke-sa-gold/20" strokeWidth="8" fill="none" />
                     <motion.circle
                         cx="40" cy="40" r="35"
-                        className="stroke-amber-400 -rotate-90 origin-center"
+                        className="stroke-sa-gold -rotate-90 origin-center"
                         strokeWidth="8" fill="none"
                         strokeDasharray={circumference}
                         initial={{ strokeDashoffset: circumference }}
@@ -207,12 +207,12 @@ const ScoreVisual = () => {
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
                       <motion.span 
-                        className="text-2xl sm:text-4xl font-extrabold text-amber-500"
+                        className="text-2xl sm:text-4xl font-extrabold text-sa-gold"
                         suppressHydrationWarning
                       >
                         {rounded}
                       </motion.span>
-                      <span className="text-lg sm:text-xl font-bold text-amber-500">%</span>
+                      <span className="text-lg sm:text-xl font-bold text-sa-gold">%</span>
                     </div>
                 </div>
             </div>
@@ -221,10 +221,10 @@ const ScoreVisual = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.5 }}
-              className="mt-2 flex items-center space-x-1 bg-amber-50 px-3 py-1 rounded-full"
+              className="mt-2 flex items-center space-x-1 bg-sa-gold/10 px-3 py-1 rounded-full"
             >
-              <TrendingUp className="w-3 h-3 text-amber-600" />
-              <span className="text-xs text-amber-700 font-medium">Excellent</span>
+              <TrendingUp className="w-3 h-3 text-sa-gold" />
+              <span className="text-xs text-sa-gold-dark font-medium">Excellent</span>
             </motion.div>
         </div>
     );
@@ -301,8 +301,8 @@ export const Features = () => {
                 className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/80 shadow-lg"
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="p-3 bg-sky-100 rounded-lg">
-                    <feature.icon className="w-6 h-6 text-sky-600" />
+                  <div className="p-3 bg-sa-green/10 rounded-lg">
+                    <feature.icon className="w-6 h-6 text-sa-green" />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-bold text-slate-800 mb-2">{feature.title}</h3>
@@ -336,8 +336,8 @@ export const Features = () => {
                   <motion.div 
                     className="p-3 rounded-lg transition-all duration-300"
                     animate={{
-                        backgroundColor: activeIndex === index ? "#0ea5e91a" : "#f1f5f9",
-                        color: activeIndex === index ? "#0ea5e9" : "#64748b"
+                        backgroundColor: activeIndex === index ? "#007A3D1a" : "#f1f5f9",
+                        color: activeIndex === index ? "#007A3D" : "#64748b"
                     }}>
                     <feature.icon className="w-6 h-6" />
                   </motion.div>

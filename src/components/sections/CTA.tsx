@@ -49,10 +49,10 @@ export const CTA = () => {
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, amount: 0.5 }}
             transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
-            className="relative text-center rounded-2xl sm:rounded-3xl overflow-hidden p-1 bg-gradient-to-br from-sky-300 via-indigo-300 to-sky-300"
+            className="relative text-center rounded-2xl sm:rounded-3xl overflow-hidden p-1 bg-gradient-to-br from-sa-green/30 via-sa-gold/30 to-sa-green/30"
         >
           {/* Animated Gradient Background */}
-          <div className="absolute inset-[-100%] -z-10 animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#e0f2fe_0%,#a5b4fc_50%,#e0f2fe_100%)]" />
+          <div className="absolute inset-[-100%] -z-10 animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,_#00A651_0%,_#FFB612_50%,_#00A651_100%)]" />
           
           <div className="relative bg-slate-900/90 backdrop-blur-xl p-8 sm:p-12 lg:p-16 rounded-[22px]">
             <motion.div
@@ -64,7 +64,7 @@ export const CTA = () => {
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tighter text-white mb-4 sm:mb-6 [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]">
                 Ready to Find Your Dream Job?
               </h2>
-              <p className="text-base sm:text-lg text-sky-100/90 mb-6 sm:mb-8 lg:mb-10 max-w-2xl mx-auto [text-shadow:0_1px_2px_rgba(0,0,0,0.2)] leading-relaxed">
+              <p className="text-base sm:text-lg text-sa-green-light/90 mb-6 sm:mb-8 lg:mb-10 max-w-2xl mx-auto [text-shadow:0_1px_2px_rgba(0,0,0,0.2)] leading-relaxed">
                 Create your profile in minutes and let our AI co-pilot guide you
                 to career success. Your next opportunity is just a click away.
               </p>
@@ -77,8 +77,8 @@ export const CTA = () => {
                 transition={{ delay: 0.4 }}
               >
                 {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center space-x-2 text-sky-200/90">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+                  <div key={index} className="flex items-center space-x-2 text-sa-green-light/90">
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-sa-green" />
                     <span className="text-sm sm:text-base font-medium">{benefit}</span>
                   </div>
                 ))}
@@ -98,7 +98,7 @@ export const CTA = () => {
               </motion.div>
               
               <motion.p 
-                className="text-sky-200/60 text-xs sm:text-sm mt-4"
+                className="text-sa-green-light/60 text-xs sm:text-sm mt-4"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}

@@ -16,8 +16,8 @@ const EmailVerificationSuccess = ({ email, onBackToLogin }: { email: string; onB
             animate={{ opacity: 1, scale: 1 }}
             className="text-center space-y-6"
         >
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <Mail className="w-8 h-8 text-green-600" />
+            <div className="mx-auto w-16 h-16 bg-sa-green/10 rounded-full flex items-center justify-center">
+                <Mail className="w-8 h-8 text-sa-green" />
             </div>
             
             <div>
@@ -25,15 +25,15 @@ const EmailVerificationSuccess = ({ email, onBackToLogin }: { email: string; onB
                 <p className="text-slate-600 mb-4">
                     We've sent a verification link to:
                 </p>
-                <p className="font-semibold text-sky-600 bg-sky-50 px-4 py-2 rounded-lg border border-sky-200">
+                <p className="font-semibold text-sa-green bg-sa-green/10 px-4 py-2 rounded-lg border border-sa-green/20">
                     {email}
                 </p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+            <div className="bg-sa-green/10 border border-sa-green/20 rounded-lg p-4 text-left">
                 <div className="flex items-start space-x-3">
-                    <Clock className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-blue-800">
+                    <Clock className="w-5 h-5 text-sa-green mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-sa-green-dark">
                         <p className="font-semibold mb-2">Next Steps:</p>
                         <ol className="list-decimal list-inside space-y-1">
                             <li>Open your email inbox</li>
@@ -82,14 +82,14 @@ const FloatingLabelInput = ({ id, label, icon: Icon, error, ...props }: any) => 
                 animate={{ 
                     y: isFloating ? -26 : -10, 
                     scale: isFloating ? 0.85 : 1, 
-                    color: error ? "#ef4444" : (isFocused ? "#0ea5e9" : "#64748b")
+                    color: error ? "#ef4444" : (isFocused ? "#007A3D" : "#64748b")
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
                 {label}
             </motion.label>
             <Icon className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
-                error ? 'text-red-500' : (isFocused ? 'text-sky-500' : 'text-slate-400')
+                error ? 'text-red-500' : (isFocused ? 'text-sa-green' : 'text-slate-400')
             }`} />
             <input 
                 id={id} 
@@ -99,7 +99,7 @@ const FloatingLabelInput = ({ id, label, icon: Icon, error, ...props }: any) => 
                 className={`w-full pl-12 pr-4 py-4 bg-transparent border-2 rounded-xl focus:outline-none transition-colors duration-200 text-slate-900 ${
                     error 
                         ? 'border-red-300 focus:border-red-500' 
-                        : 'border-slate-200 focus:border-sky-500'
+                        : 'border-slate-200 focus:border-sa-green'
                 }`}
                 {...props} 
             />
@@ -148,7 +148,7 @@ const AnimatedBenefits = () => {
                     className="flex items-center space-x-4"
                 >
                     <div className="p-3 bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-lg shadow-md">
-                        <Icon className="w-6 h-6 text-sky-500" />
+                        <Icon className="w-6 h-6 text-sa-green" />
                     </div>
                     <span className="text-slate-700 font-medium text-lg">{CurrentBenefit.text}</span>
                 </motion.div>
@@ -301,7 +301,7 @@ const AuthPageContent = () => {
     <div className="min-h-screen w-full bg-slate-50 relative overflow-hidden flex items-center justify-center p-4">
       {/* Background */}
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-50" />
-      <div className="absolute inset-[-200%] -z-10 animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#e0f2fe_0%,#a5b4fc_50%,#e0f2fe_100%)] opacity-30" />
+      <div className="absolute inset-[-200%] -z-10 animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,_#00A651_0%,_#FFB612_50%,_#00A651_100%)] opacity-30" />
 
       <main className="w-full max-w-7xl mx-auto z-10">
         <div className="flex flex-col lg:flex-row bg-white/60 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl shadow-slate-400/20 overflow-hidden">
@@ -317,12 +317,12 @@ const AuthPageContent = () => {
                         <div className="p-2 border border-slate-200 rounded-full group-hover:bg-white transition-colors">
                             <ArrowLeft className="w-5 h-5 text-slate-500" />
                         </div>
-                        <Sparkles className="w-8 h-8 text-sky-500" />
+                        <Sparkles className="w-8 h-8 text-sa-green" />
                         <span className="text-2xl font-bold text-slate-900">JobSpark</span>
                     </Link>
                     <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-slate-900 mb-4">
                         Your Career<br />
-                        <span className="bg-gradient-to-r from-sky-500 to-indigo-500 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-sa-green to-sa-gold bg-clip-text text-transparent">
                             Starts Here
                         </span>
                     </h1>
@@ -383,11 +383,11 @@ const AuthPageContent = () => {
                                     <motion.div
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                                        className="mb-6 p-4 bg-sa-green/10 border border-sa-green/20 rounded-lg"
                                     >
                                         <div className="flex items-start space-x-3">
-                                            <Mail className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                                            <div className="text-sm text-blue-800">
+                                            <Mail className="w-5 h-5 text-sa-green mt-0.5 flex-shrink-0" />
+                                            <div className="text-sm text-sa-green-dark">
                                                 <p className="font-semibold mb-1">Email Verification Required</p>
                                                 <p>After signing up, we'll send you a verification email. Please check your inbox and click the link to activate your account.</p>
                                             </div>
@@ -481,7 +481,7 @@ const AuthPageContent = () => {
                                                 setErrors({});
                                                 setFormData({ name: '', email: '', password: '', confirmPassword: '' });
                                             }} 
-                                            className="ml-2 text-sky-500 hover:text-sky-600 font-semibold"
+                                            className="ml-2 text-sa-green hover:text-sa-green-dark font-semibold"
                                             disabled={isLoading}
                                         >
                                             {isLogin ? "Sign Up" : "Sign In"}
