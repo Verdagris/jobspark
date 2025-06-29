@@ -10,7 +10,7 @@ export const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8">
           <div className="col-span-4 md:col-span-1 mb-8 md:mb-0">
             <a href="#" className="flex items-center space-x-2 mb-4">
-              <Sparkles className="w-7 h-7 text-neon-cyan drop-shadow-[0_0_5px_rgba(var(--neon-cyan-rgb),0.7)]" />
+              <Sparkles className="w-7 h-7 text-sa-green drop-shadow-[0_0_5px_rgba(0,122,61,0.7)]" />
               <span className="text-2xl font-bold text-slate-900">
                 JobSpark
               </span>
@@ -37,7 +37,7 @@ export const Footer = () => {
                     <li key={link}>
                       <a
                         href="#"
-                        className="text-slate-500 hover:text-neon-cyan transition-colors"
+                        className="text-slate-500 hover:text-sa-green transition-colors"
                       >
                         {link}
                       </a>

@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --sa-green: #007A3D;
+  --sa-green-light: #00A651;
+  --sa-green-dark: #005A2D;
+  --sa-gold: #FFB612;
+  --sa-gold-light: #FFC843;
+  --sa-gold-dark: #E6A000;
 }
 
 body {

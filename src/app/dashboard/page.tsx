@@ -12,6 +12,7 @@ import {
   getUserCVs,
   getUserInterviewSessions,
   getUserProgress,
+  getUserSavedJobs,
   getEncouragementMessage,
   getSessionRecommendations,
   calculateCareerScore
@@ -28,7 +29,7 @@ import {
   TrendingUp,
   Calendar,
   Bell,
-  Send,
+  Bookmark,
   Award,
   Clock,
   BarChart3,
@@ -111,14 +112,15 @@ const DashboardPage = () => {
     if (!user) return;
     
     try {
-      const [profile, experiences, education, skills, cvs, interviewSessions, progress] = await Promise.all([
+      const [profile, experiences, education, skills, cvs, interviewSessions, progress, savedJobs] = await Promise.all([
         getUserProfile(user.id),
         getUserExperiences(user.id),
         getUserEducation(user.id),
         getUserSkills(user.id),
         getUserCVs(user.id),
         getUserInterviewSessions(user.id),
-        getUserProgress(user.id)
+        getUserProgress(user.id),
+        getUserSavedJobs(user.id)
       ]);
 
       // Calculate profile completion
@@ -138,8 +140,13 @@ const DashboardPage = () => {
       // Calculate stats
       const stats = {
         profileCompletion,
-        applicationsSent: Math.floor(Math.random() * 20) + 5,
-        interviewInvites: Math.floor(Math.random() * 5) + 1,
+        savedJobs: savedJobs.length,
+        practiceCount: interviewSessions.filter(session => {
+          const sessionDate = new Date(session.created_at);
+          const oneMonthAgo = new Date();
+          oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+          return sessionDate >= oneMonthAgo;
+        }).length,
         careerScore
       };
 
@@ -151,6 +158,7 @@ const DashboardPage = () => {
         cvs,
         interviewSessions,
         progress,
+        savedJobs,
         stats,
         recentActivity
       });
@@ -172,17 +180,36 @@ const DashboardPage = () => {
   const calculateProfileCompletion = (profile: any, experiences: any[], skills: any[]) => {
     let completed = 0;
     let total = 8;
+    let missingItems = [];
     
     if (profile?.full_name) completed++;
-    if (profile?.email) completed++;
-    if (profile?.phone) completed++;
-    if (profile?.location) completed++;
-    if (profile?.professional_summary) completed++;
-    if (experiences.length > 0) completed++;
-    if (skills.length >= 3) completed++;
-    if (profile?.profile_image_url) completed++;
+    else missingItems.push("Full name");
     
-    return Math.round((completed / total) * 100);
+    if (profile?.email) completed++;
+    else missingItems.push("Email");
+    
+    if (profile?.phone) completed++;
+    else missingItems.push("Phone number");
+    
+    if (profile?.location) completed++;
+    else missingItems.push("Location");
+    
+    if (profile?.professional_summary) completed++;
+    else missingItems.push("Professional summary");
+    
+    if (experiences.length > 0) completed++;
+    else missingItems.push("Work experience");
+    
+    if (skills.length >= 3) completed++;
+    else missingItems.push("Skills (at least 3)");
+    
+    if (profile?.profile_image_url) completed++;
+    else missingItems.push("Profile photo");
+    
+    return {
+      percentage: Math.round((completed / total) * 100),
+      missingItems: missingItems
+    };
   };
 
   const getEnhancedRecentActivity = (experiences: any[], cvs: any[], sessions: any[]) => {
@@ -290,12 +317,12 @@ const DashboardPage = () => {
     
     // Profile completion reminder
     const profileCompletion = calculateProfileCompletion(profile, [], []);
-    if (profileCompletion < 80) {
+    if (profileCompletion.percentage < 80) {
       notifications.push({
         id: 4,
         type: 'reminder',
         title: 'Complete Your Profile',
-        message: `Your profile is ${profileCompletion}% complete. Add more details to improve your career score.`,
+        message: `Your profile is ${profileCompletion.percentage}% complete. Add more details to improve your career score.`,
         time: '3 days ago',
         read: true,
         actionable: true,
@@ -569,31 +596,37 @@ const DashboardPage = () => {
   const stats = [
     { 
       label: "Profile Completion", 
-      value: `${dashboardData.stats.profileCompletion}%`, 
+      value: `${dashboardData.stats.profileCompletion.percentage}%`, 
       icon: User,
       color: "text-sa-green bg-sa-green/10",
-      trend: dashboardData.stats.profileCompletion > 80 ? 'up' : 'neutral'
+      trend: dashboardData.stats.profileCompletion.percentage > 80 ? 'up' : 'neutral',
+      details: dashboardData.stats.profileCompletion.missingItems.length > 0 
+        ? `Missing: ${dashboardData.stats.profileCompletion.missingItems.slice(0, 2).join(', ')}${dashboardData.stats.profileCompletion.missingItems.length > 2 ? '...' : ''}`
+        : 'Complete'
     },
     { 
-      label: "Applications Sent", 
-      value: dashboardData.stats.applicationsSent.toString(), 
-      icon: Send,
+      label: "Jobs Saved", 
+      value: dashboardData.stats.savedJobs.toString(), 
+      icon: Bookmark,
       color: "text-sa-gold bg-sa-gold/10",
-      trend: 'up'
+      trend: 'up',
+      details: dashboardData.stats.savedJobs > 0 ? `${dashboardData.savedJobs.filter(j => j.is_applied).length} applied` : 'Save jobs to apply'
     },
     { 
-      label: "Interview Invites", 
-      value: dashboardData.stats.interviewInvites.toString(), 
+      label: "Practice Sessions", 
+      value: dashboardData.stats.practiceCount.toString(), 
       icon: Calendar,
       color: "text-sa-green-dark bg-sa-green/10",
-      trend: 'up'
+      trend: 'up',
+      details: 'Past 30 days'
     },
     { 
       label: "Career Score", 
       value: dashboardData.stats.careerScore.toString(), 
       icon: TrendingUp,
       color: "text-sa-gold-dark bg-sa-gold/10",
-      trend: dashboardData.stats.careerScore > 75 ? 'up' : 'neutral'
+      trend: dashboardData.stats.careerScore > 75 ? 'up' : 'neutral',
+      details: dashboardData.stats.careerScore > 80 ? 'Excellent' : dashboardData.stats.careerScore > 70 ? 'Good' : 'Needs improvement'
     }
   ];
 
@@ -617,7 +650,7 @@ const DashboardPage = () => {
                 >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-sa-gold rounded-full flex items-center justify-center">
                       <span className="text-xs text-white font-medium">{unreadCount}</span>
                     </div>
                   )}
@@ -679,7 +712,7 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'there'}! 
+                Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'there'}! 🇿🇦
               </h1>
               {encouragementMessage && (
                 <p className="text-slate-600 max-w-2xl leading-relaxed">
@@ -718,7 +751,10 @@ const DashboardPage = () => {
                 <div>
                   <p className="text-sm text-slate-600 mb-1">{stat.label}</p>
                   <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                  {stat.label === "Profile Completion" && stat.value !== "100%" && (
+                  {stat.details && (
+                    <p className="text-xs text-slate-500 mt-1">{stat.details}</p>
+                  )}
+                  {stat.label === "Profile Completion" && parseInt(stat.value) < 100 && (
                     <Link href="/onboarding">
                       <button className="text-xs text-sa-gold mt-1 hover:text-sa-gold-dark font-medium">
                         Complete profile →
@@ -980,12 +1016,12 @@ const DashboardPage = () => {
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-slate-600">Profile Complete</span>
-                    <span className="font-semibold text-slate-900">{dashboardData.stats.profileCompletion}%</span>
+                    <span className="font-semibold text-slate-900">{dashboardData.stats.profileCompletion.percentage}%</span>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div 
                       className="bg-sa-green h-2 rounded-full transition-all duration-1000"
-                      style={{ width: `${dashboardData.stats.profileCompletion}%` }}
+                      style={{ width: `${dashboardData.stats.profileCompletion.percentage}%` }}
                     />
                   </div>
                 </div>
@@ -1025,7 +1061,7 @@ const DashboardPage = () => {
                 <span>Next Steps</span>
               </h3>
               <div className="space-y-3">
-                {dashboardData.stats.profileCompletion < 100 && (
+                {dashboardData.stats.profileCompletion.percentage < 100 && (
                   <Link href="/onboarding">
                     <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
                       <CheckCircle className="w-4 h-4 text-sa-green" />
