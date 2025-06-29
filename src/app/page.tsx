@@ -20,16 +20,16 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
       <div className="flex items-center space-x-3 mb-6">
-        <Sparkles className="w-12 h-12 text-sa-green" />
+        <Sparkles className="w-12 h-12 text-green-600" />
         <h1 className="text-4xl font-bold text-slate-900">JobSpark</h1>
       </div>
       <div className="flex flex-col items-center">
-        <div className="w-12 h-12 border-4 border-sa-green/30 border-t-sa-green rounded-full animate-spin mb-4"></div>
+        <div className="w-12 h-12 border-4 border-green-600/30 border-t-green-600 rounded-full animate-spin mb-4"></div>
         <span className="text-slate-600 font-medium">Loading your career journey...</span>
         <div className="mt-4 flex space-x-2">
-          <div className="w-3 h-3 bg-sa-green rounded-full animate-pulse"></div>
-          <div className="w-3 h-3 bg-sa-gold rounded-full animate-pulse animation-delay-1000"></div>
-          <div className="w-3 h-3 bg-sa-green rounded-full animate-pulse animation-delay-2000"></div>
+          <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse"></div>
+          <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse animation-delay-1000"></div>
+          <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse animation-delay-2000"></div>
         </div>
       </div>
       <div className="absolute bottom-8 text-center">

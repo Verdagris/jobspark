@@ -57,7 +57,7 @@ export const Header = () => {
       >
         {/* Left Side: Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-sa-green drop-shadow-[0_0_8px_rgba(0,122,61,0.5)]" />
+          <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
           <span className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             JobSpark
           </span>
@@ -78,7 +78,7 @@ export const Header = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-4 lg:px-5 py-2 lg:py-2.5 text-sm lg:text-base bg-sa-green text-white rounded-lg hover:bg-sa-green-dark transition-colors"
+              className="px-4 lg:px-5 py-2 lg:py-2.5 text-sm lg:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               Get Started
             </motion.button>
@@ -110,7 +110,7 @@ export const Header = () => {
                 </button>
               </Link>
               <Link href="/auth" className="block">
-                <button className="w-full bg-sa-green text-white px-4 py-3 rounded-lg font-semibold hover:bg-sa-green-dark transition-colors">
+                <button className="w-full bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors">
                   Get Started
                 </button>
               </Link>

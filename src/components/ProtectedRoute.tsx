@@ -34,7 +34,7 @@ export const ProtectedRoute = ({ children, redirectTo = '/auth' }: ProtectedRout
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 border-4 border-sa-green/30 border-t-sa-green rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-green-600/30 border-t-green-600 rounded-full animate-spin"></div>
           <span className="text-slate-600 font-medium">Loading...</span>
         </div>
       </div>
