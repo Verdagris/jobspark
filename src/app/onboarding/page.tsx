@@ -18,7 +18,6 @@ import {
   Building2,
   Star,
   Camera,
-  Upload,
   X,
   Info,
   Lightbulb,
@@ -1106,15 +1105,15 @@ const OnboardingPage = () => {
                   variants={itemVariants}
                   className="flex items-center"
                 >
-                  <div className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${
                     index <= currentStep 
                       ? 'bg-green-600 text-white shadow-lg shadow-green-600/30' 
                       : 'bg-slate-200 text-slate-500'
                   }`}>
                     {index < currentStep ? (
-                      <CheckCircle className="w-8 h-8" />
+                      <CheckCircle className="w-10 h-10" />
                     ) : (
-                      <IconComponent className="w-8 h-8" />
+                      <IconComponent className="w-10 h-10" />
                     )}
                     {index <= currentStep && (
                       <div className="absolute inset-0 bg-green-600 rounded-full animate-ping opacity-20"></div>
@@ -1188,8 +1187,8 @@ const OnboardingPage = () => {
                 {steps.map((_, index) => (
                   <div
                     key={index}
-                    className={`w-3 h-3 rounded-full transition-all ${
-                      index === currentStep ? 'bg-green-600 w-10' : 'bg-slate-300'
+                    className={`w-4 h-4 rounded-full transition-all ${
+                      index === currentStep ? 'bg-green-600 w-12' : 'bg-slate-300'
                     }`}
                   />
                 ))}
