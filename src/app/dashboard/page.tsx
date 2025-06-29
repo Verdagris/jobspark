@@ -12,6 +12,7 @@ import {
   getUserCVs,
   getUserInterviewSessions,
   getUserProgress,
+  getUserSavedJobs,
   getEncouragementMessage,
   getSessionRecommendations,
   calculateCareerScore
@@ -28,7 +29,7 @@ import {
   TrendingUp,
   Calendar,
   Bell,
-  Send,
+  Bookmark,
   Award,
   Clock,
   BarChart3,
@@ -111,14 +112,15 @@ const DashboardPage = () => {
     if (!user) return;
     
     try {
-      const [profile, experiences, education, skills, cvs, interviewSessions, progress] = await Promise.all([
+      const [profile, experiences, education, skills, cvs, interviewSessions, progress, savedJobs] = await Promise.all([
         getUserProfile(user.id),
         getUserExperiences(user.id),
         getUserEducation(user.id),
         getUserSkills(user.id),
         getUserCVs(user.id),
         getUserInterviewSessions(user.id),
-        getUserProgress(user.id)
+        getUserProgress(user.id),
+        getUserSavedJobs(user.id)
       ]);
 
       // Calculate profile completion
@@ -138,8 +140,13 @@ const DashboardPage = () => {
       // Calculate stats
       const stats = {
         profileCompletion,
-        applicationsSent: Math.floor(Math.random() * 20) + 5,
-        interviewInvites: Math.floor(Math.random() * 5) + 1,
+        savedJobs: savedJobs.length,
+        practiceCount: interviewSessions.filter(session => {
+          const sessionDate = new Date(session.created_at);
+          const oneMonthAgo = new Date();
+          oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+          return sessionDate >= oneMonthAgo;
+        }).length,
         careerScore
       };
 
@@ -151,6 +158,7 @@ const DashboardPage = () => {
         cvs,
         interviewSessions,
         progress,
+        savedJobs,
         stats,
         recentActivity
       });
@@ -172,17 +180,36 @@ const DashboardPage = () => {
   const calculateProfileCompletion = (profile: any, experiences: any[], skills: any[]) => {
     let completed = 0;
     let total = 8;
+    let missingItems = [];
     
     if (profile?.full_name) completed++;
-    if (profile?.email) completed++;
-    if (profile?.phone) completed++;
-    if (profile?.location) completed++;
-    if (profile?.professional_summary) completed++;
-    if (experiences.length > 0) completed++;
-    if (skills.length >= 3) completed++;
-    if (profile?.profile_image_url) completed++;
+    else missingItems.push("Full name");
     
-    return Math.round((completed / total) * 100);
+    if (profile?.email) completed++;
+    else missingItems.push("Email");
+    
+    if (profile?.phone) completed++;
+    else missingItems.push("Phone number");
+    
+    if (profile?.location) completed++;
+    else missingItems.push("Location");
+    
+    if (profile?.professional_summary) completed++;
+    else missingItems.push("Professional summary");
+    
+    if (experiences.length > 0) completed++;
+    else missingItems.push("Work experience");
+    
+    if (skills.length >= 3) completed++;
+    else missingItems.push("Skills (at least 3)");
+    
+    if (profile?.profile_image_url) completed++;
+    else missingItems.push("Profile photo");
+    
+    return {
+      percentage: Math.round((completed / total) * 100),
+      missingItems: missingItems
+    };
   };
 
   const getEnhancedRecentActivity = (experiences: any[], cvs: any[], sessions: any[]) => {
@@ -290,12 +317,12 @@ const DashboardPage = () => {
     
     // Profile completion reminder
     const profileCompletion = calculateProfileCompletion(profile, [], []);
-    if (profileCompletion < 80) {
+    if (profileCompletion.percentage < 80) {
       notifications.push({
         id: 4,
         type: 'reminder',
         title: 'Complete Your Profile',
-        message: `Your profile is ${profileCompletion}% complete. Add more details to improve your career score.`,
+        message: `Your profile is ${profileCompletion.percentage}% complete. Add more details to improve your career score.`,
         time: '3 days ago',
         read: true,
         actionable: true,
@@ -397,7 +424,7 @@ const DashboardPage = () => {
                   </span>
                 </div>
                 <Link href="/onboarding">
-                  <button className="w-full text-left px-3 py-2 text-sm text-sky-600 hover:bg-sky-50 rounded-lg transition-colors">
+                  <button className="w-full text-left px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                     Edit Profile
                   </button>
                 </Link>
@@ -447,7 +474,7 @@ const DashboardPage = () => {
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-slate-900">Notifications</h3>
           {unreadCount > 0 && (
-            <span className="text-xs bg-sky-100 text-sky-600 px-2 py-1 rounded-full">
+            <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
               {unreadCount} new
             </span>
           )}
@@ -460,14 +487,14 @@ const DashboardPage = () => {
             <div
               key={notification.id}
               className={`p-4 border-b border-slate-100 hover:bg-slate-50 transition-colors ${
-                !notification.read ? 'bg-sky-50/50' : ''
+                !notification.read ? 'bg-green-50/50' : ''
               }`}
             >
               <div className="flex items-start space-x-3">
                 <div className={`w-2 h-2 rounded-full mt-2 ${
                   notification.type === 'success' ? 'bg-green-500' :
                   notification.type === 'info' ? 'bg-blue-500' :
-                  'bg-orange-500'
+                  'bg-yellow-500'
                 }`} />
                 <div className="flex-1">
                   <h4 className="font-medium text-slate-900 text-sm">{notification.title}</h4>
@@ -477,7 +504,7 @@ const DashboardPage = () => {
                     <div className="flex items-center space-x-2">
                       {notification.actionable && (
                         <Link href={notification.actionUrl || '#'}>
-                          <button className="text-xs text-sky-600 hover:text-sky-800 font-medium">
+                          <button className="text-xs text-green-600 hover:text-green-800 font-medium">
                             {notification.action}
                           </button>
                         </Link>
@@ -494,7 +521,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 {!notification.read && (
-                  <div className="w-2 h-2 bg-sky-500 rounded-full" />
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
                 )}
               </div>
             </div>
@@ -511,7 +538,7 @@ const DashboardPage = () => {
         <div className="p-3 border-t border-slate-200">
           <button 
             onClick={markAllAsRead}
-            className="w-full text-center text-sm text-sky-600 hover:text-sky-800 transition-colors"
+            className="w-full text-center text-sm text-green-600 hover:text-green-800 transition-colors"
           >
             Mark all as read
           </button>
@@ -524,7 +551,7 @@ const DashboardPage = () => {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-green-600/30 border-t-green-600 rounded-full animate-spin"></div>
           <span className="text-slate-600 font-medium">Loading...</span>
         </div>
       </div>
@@ -540,28 +567,28 @@ const DashboardPage = () => {
       icon: FileText,
       title: "Generate CV",
       description: "Create a professional CV with AI",
-      color: "from-blue-500 to-cyan-500",
+      color: "from-green-600 to-green-700",
       href: "/cv-builder"
     },
     {
       icon: MessageSquare,
       title: "Interview Practice",
       description: "Practice with our AI coach",
-      color: "from-purple-500 to-pink-500",
+      color: "from-yellow-500 to-orange-500",
       href: "/interview-practice"
     },
     {
       icon: Search,
       title: "Job Search",
       description: "Find and save job opportunities",
-      color: "from-green-500 to-emerald-500",
+      color: "from-green-500 to-green-600",
       href: "/job-search"
     },
     {
       icon: Target,
       title: "Career Score",
       description: "Check your readiness",
-      color: "from-orange-500 to-red-500",
+      color: "from-yellow-400 to-yellow-500",
       href: "/career-score"
     }
   ];
@@ -569,31 +596,37 @@ const DashboardPage = () => {
   const stats = [
     { 
       label: "Profile Completion", 
-      value: `${dashboardData.stats.profileCompletion}%`, 
+      value: `${dashboardData.stats.profileCompletion.percentage}%`, 
       icon: User,
-      color: "text-blue-600 bg-blue-100",
-      trend: dashboardData.stats.profileCompletion > 80 ? 'up' : 'neutral'
-    },
-    { 
-      label: "Applications Sent", 
-      value: dashboardData.stats.applicationsSent.toString(), 
-      icon: Send,
       color: "text-green-600 bg-green-100",
-      trend: 'up'
+      trend: dashboardData.stats.profileCompletion.percentage > 80 ? 'up' : 'neutral',
+      details: dashboardData.stats.profileCompletion.missingItems.length > 0 
+        ? `Missing: ${dashboardData.stats.profileCompletion.missingItems.slice(0, 2).join(', ')}${dashboardData.stats.profileCompletion.missingItems.length > 2 ? '...' : ''}`
+        : 'Complete'
     },
     { 
-      label: "Interview Invites", 
-      value: dashboardData.stats.interviewInvites.toString(), 
+      label: "Jobs Saved", 
+      value: dashboardData.stats.savedJobs.toString(), 
+      icon: Bookmark,
+      color: "text-yellow-600 bg-yellow-100",
+      trend: 'up',
+      details: dashboardData.stats.savedJobs > 0 ? `${dashboardData.savedJobs.filter(j => j.is_applied).length} applied` : 'Save jobs to apply'
+    },
+    { 
+      label: "Practice Sessions", 
+      value: dashboardData.stats.practiceCount.toString(), 
       icon: Calendar,
-      color: "text-purple-600 bg-purple-100",
-      trend: 'up'
+      color: "text-green-700 bg-green-100",
+      trend: 'up',
+      details: 'Past 30 days'
     },
     { 
       label: "Career Score", 
       value: dashboardData.stats.careerScore.toString(), 
       icon: TrendingUp,
-      color: "text-orange-600 bg-orange-100",
-      trend: dashboardData.stats.careerScore > 75 ? 'up' : 'neutral'
+      color: "text-yellow-700 bg-yellow-100",
+      trend: dashboardData.stats.careerScore > 75 ? 'up' : 'neutral',
+      details: dashboardData.stats.careerScore > 80 ? 'Excellent' : dashboardData.stats.careerScore > 70 ? 'Good' : 'Needs improvement'
     }
   ];
 
@@ -604,7 +637,7 @@ const DashboardPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Sparkles className="w-8 h-8 text-sky-500" />
+              <Sparkles className="w-8 h-8 text-green-600" />
               <span className="text-2xl font-bold text-slate-900">JobSpark</span>
             </div>
             
@@ -617,7 +650,7 @@ const DashboardPage = () => {
                 >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
                       <span className="text-xs text-white font-medium">{unreadCount}</span>
                     </div>
                   )}
@@ -634,7 +667,7 @@ const DashboardPage = () => {
               </button>
 
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
                     {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
                   </span>
@@ -679,7 +712,7 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'there'}! 👋
+                Welcome back, {user.user_metadata?.full_name?.split(' ')[0] || 'there'}! 🇿🇦
               </h1>
               {encouragementMessage && (
                 <p className="text-slate-600 max-w-2xl leading-relaxed">
@@ -689,10 +722,10 @@ const DashboardPage = () => {
             </div>
             {dashboardData.stats.careerScore < 80 && (
               <div className="hidden md:block">
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <AlertCircle className="w-5 h-5 text-orange-600" />
-                    <span className="text-sm font-medium text-orange-800">
+                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800">
                       Boost your career score to {dashboardData.stats.careerScore + 10}+
                     </span>
                   </div>
@@ -718,16 +751,19 @@ const DashboardPage = () => {
                 <div>
                   <p className="text-sm text-slate-600 mb-1">{stat.label}</p>
                   <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                  {stat.label === "Profile Completion" && stat.value !== "100%" && (
+                  {stat.details && (
+                    <p className="text-xs text-slate-500 mt-1">{stat.details}</p>
+                  )}
+                  {stat.label === "Profile Completion" && parseInt(stat.value) < 100 && (
                     <Link href="/onboarding">
-                      <button className="text-xs text-orange-600 mt-1 hover:text-orange-800 font-medium">
+                      <button className="text-xs text-yellow-600 mt-1 hover:text-yellow-800 font-medium">
                         Complete profile →
                       </button>
                     </Link>
                   )}
                   {stat.label === "Career Score" && parseInt(stat.value) < 80 && (
                     <Link href="/career-score">
-                      <button className="text-xs text-orange-600 mt-1 hover:text-orange-800 font-medium">
+                      <button className="text-xs text-yellow-600 mt-1 hover:text-yellow-800 font-medium">
                         Improve score →
                       </button>
                     </Link>
@@ -755,18 +791,18 @@ const DashboardPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200 p-6 mb-8"
+            className="bg-gradient-to-r from-green-50 to-yellow-50 rounded-xl border border-green-200 p-6 mb-8"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <Flame className="w-5 h-5 text-orange-500" />
+                <Flame className="w-5 h-5 text-yellow-500" />
                 <span>Your Progress This Week</span>
               </h3>
               <div className="flex items-center space-x-4">
                 {dashboardData.progress.streak_days > 0 && (
-                  <div className="flex items-center space-x-1 bg-orange-100 px-3 py-1 rounded-full">
-                    <Flame className="w-4 h-4 text-orange-500" />
-                    <span className="text-sm font-medium text-orange-700">
+                  <div className="flex items-center space-x-1 bg-yellow-100 px-3 py-1 rounded-full">
+                    <Flame className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-700">
                       {dashboardData.progress.streak_days} day streak
                     </span>
                   </div>
@@ -788,7 +824,7 @@ const DashboardPage = () => {
               
               <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4">
                 <div className="flex items-center space-x-2 mb-2">
-                  <Clock className="w-4 h-4 text-blue-500" />
+                  <Clock className="w-4 h-4 text-green-600" />
                   <span className="text-sm font-medium text-slate-700">Practice Time</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900">{dashboardData.progress.total_practice_time}min</div>
@@ -796,7 +832,7 @@ const DashboardPage = () => {
               
               <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4">
                 <div className="flex items-center space-x-2 mb-2">
-                  <BarChart3 className="w-4 h-4 text-green-500" />
+                  <BarChart3 className="w-4 h-4 text-green-700" />
                   <span className="text-sm font-medium text-slate-700">Avg Score</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900">{Math.round(dashboardData.progress.average_score)}%</div>
@@ -814,7 +850,7 @@ const DashboardPage = () => {
             className="bg-white rounded-xl border border-slate-200 p-6 mb-8"
           >
             <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center space-x-2">
-              <BookOpen className="w-5 h-5 text-sky-500" />
+              <BookOpen className="w-5 h-5 text-green-600" />
               <span>Recommended for You</span>
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
@@ -830,7 +866,7 @@ const DashboardPage = () => {
                       </p>
                     </div>
                     <Link href={`/interview-practice?type=${rec}`}>
-                      <button className="flex items-center space-x-1 px-3 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors text-sm">
+                      <button className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
                         <span>Start</span>
                         <ArrowRight className="w-3 h-3" />
                       </button>
@@ -884,7 +920,7 @@ const DashboardPage = () => {
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
-                <Activity className="w-5 h-5 text-blue-500" />
+                <Activity className="w-5 h-5 text-green-600" />
                 <span>Recent Activity</span>
               </h2>
               <span className="text-sm text-slate-500">{dashboardData.recentActivity.length} recent items</span>
@@ -895,16 +931,16 @@ const DashboardPage = () => {
                 dashboardData.recentActivity.map((activity: any, index: number) => (
                   <div key={index} className="flex items-start space-x-4 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      activity.color === 'blue' ? 'bg-blue-100' :
+                      activity.color === 'blue' ? 'bg-green-100' :
                       activity.color === 'green' ? 'bg-green-100' :
-                      activity.color === 'purple' ? 'bg-purple-100' :
-                      activity.color === 'orange' ? 'bg-orange-100' : 'bg-slate-100'
+                      activity.color === 'purple' ? 'bg-yellow-100' :
+                      activity.color === 'orange' ? 'bg-yellow-100' : 'bg-slate-100'
                     }`}>
                       <activity.icon className={`w-5 h-5 ${
-                        activity.color === 'blue' ? 'text-blue-600' :
+                        activity.color === 'blue' ? 'text-green-600' :
                         activity.color === 'green' ? 'text-green-600' :
-                        activity.color === 'purple' ? 'text-purple-600' :
-                        activity.color === 'orange' ? 'text-orange-600' : 'text-slate-600'
+                        activity.color === 'purple' ? 'text-yellow-600' :
+                        activity.color === 'orange' ? 'text-yellow-600' : 'text-slate-600'
                       }`} />
                     </div>
                     <div className="flex-1">
@@ -920,7 +956,7 @@ const DashboardPage = () => {
                         <div className="flex items-center space-x-2 mt-2">
                           <div className={`w-2 h-2 rounded-full ${
                             activity.score >= 80 ? 'bg-green-500' :
-                            activity.score >= 70 ? 'bg-blue-500' : 'bg-orange-500'
+                            activity.score >= 70 ? 'bg-green-400' : 'bg-yellow-500'
                           }`} />
                           <span className="text-xs font-medium text-slate-600">
                             {activity.score >= 80 ? 'Excellent performance' :
@@ -951,7 +987,7 @@ const DashboardPage = () => {
             {/* Career Progress */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                <BarChart3 className="w-5 h-5 text-orange-500" />
+                <BarChart3 className="w-5 h-5 text-yellow-500" />
                 <span>Career Progress</span>
               </h3>
               <div className="space-y-4">
@@ -962,7 +998,7 @@ const DashboardPage = () => {
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div 
-                      className="bg-orange-500 h-2 rounded-full transition-all duration-1000"
+                      className="bg-yellow-500 h-2 rounded-full transition-all duration-1000"
                       style={{ width: `${dashboardData.stats.careerScore}%` }}
                     />
                   </div>
@@ -970,7 +1006,7 @@ const DashboardPage = () => {
                     {dashboardData.stats.careerScore > 75 ? (
                       <TrendingUp className="w-3 h-3 text-green-500" />
                     ) : (
-                      <TrendingDown className="w-3 h-3 text-orange-500" />
+                      <TrendingDown className="w-3 h-3 text-yellow-500" />
                     )}
                     <span className="text-xs text-slate-500">
                       {dashboardData.stats.careerScore > 75 ? 'Strong readiness' : 'Needs improvement'}
@@ -980,12 +1016,12 @@ const DashboardPage = () => {
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-slate-600">Profile Complete</span>
-                    <span className="font-semibold text-slate-900">{dashboardData.stats.profileCompletion}%</span>
+                    <span className="font-semibold text-slate-900">{dashboardData.stats.profileCompletion.percentage}%</span>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-1000"
-                      style={{ width: `${dashboardData.stats.profileCompletion}%` }}
+                      className="bg-green-500 h-2 rounded-full transition-all duration-1000"
+                      style={{ width: `${dashboardData.stats.profileCompletion.percentage}%` }}
                     />
                   </div>
                 </div>
@@ -1019,16 +1055,16 @@ const DashboardPage = () => {
             </div>
 
             {/* Next Steps */}
-            <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl border border-sky-200 p-6">
+            <div className="bg-gradient-to-br from-green-50 to-yellow-50 rounded-xl border border-green-200 p-6">
               <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                <Star className="w-5 h-5 text-sky-500" />
+                <Star className="w-5 h-5 text-green-600" />
                 <span>Next Steps</span>
               </h3>
               <div className="space-y-3">
-                {dashboardData.stats.profileCompletion < 100 && (
+                {dashboardData.stats.profileCompletion.percentage < 100 && (
                   <Link href="/onboarding">
                     <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
-                      <CheckCircle className="w-4 h-4 text-sky-500" />
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                       <span className="text-sm text-slate-700">Complete your profile</span>
                     </div>
                   </Link>
@@ -1036,7 +1072,7 @@ const DashboardPage = () => {
                 {dashboardData.cvs.length === 0 && (
                   <Link href="/cv-builder">
                     <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
-                      <CheckCircle className="w-4 h-4 text-sky-500" />
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                       <span className="text-sm text-slate-700">Generate your first CV</span>
                     </div>
                   </Link>
@@ -1044,14 +1080,14 @@ const DashboardPage = () => {
                 {dashboardData.interviewSessions.length < 3 && (
                   <Link href="/interview-practice">
                     <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
-                      <CheckCircle className="w-4 h-4 text-sky-500" />
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                       <span className="text-sm text-slate-700">Practice more interviews</span>
                     </div>
                   </Link>
                 )}
                 <Link href="/job-search">
                   <div className="flex items-center space-x-2 p-2 hover:bg-white/50 rounded-lg transition-colors cursor-pointer">
-                    <CheckCircle className="w-4 h-4 text-sky-500" />
+                    <CheckCircle className="w-4 h-4 text-green-600" />
                     <span className="text-sm text-slate-700">Search and save jobs</span>
                   </div>
                 </Link>
