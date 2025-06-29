@@ -249,7 +249,7 @@ const DashboardPage = () => {
     cvs: any[],
     sessions: any[]
   ) => {
-    const activities = [];
+    const activities: any = [];
 
     // Add recent interview sessions with detailed info
     sessions.slice(0, 3).forEach((session) => {
@@ -313,7 +313,7 @@ const DashboardPage = () => {
 
     // Sort by time and return latest 5
     return activities
-      .sort((a, b) => b.time.getTime() - a.time.getTime())
+      .sort((a: any, b: any) => b.time.getTime() - a.time.getTime())
       .slice(0, 5);
   };
 
@@ -699,7 +699,7 @@ const DashboardPage = () => {
       details:
         dashboardData.stats.savedJobs > 0
           ? `${
-              dashboardData.savedJobs.filter((j) => j.is_applied).length
+              dashboardData.savedJobs.filter((j: any) => j.is_applied).length
             } applied`
           : "Save jobs to apply",
     },
