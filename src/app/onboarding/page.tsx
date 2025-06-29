@@ -1090,7 +1090,7 @@ const OnboardingPage = () => {
           <p className="text-lg text-slate-600">Let's build your professional profile step by step</p>
         </motion.div>
 
-        {/* Enhanced Progress Bar */}
+        {/* Enhanced Progress Bar with Larger Circles */}
         <motion.div 
           variants={containerVariants}
           initial="hidden"
@@ -1106,15 +1106,15 @@ const OnboardingPage = () => {
                   variants={itemVariants}
                   className="flex items-center"
                 >
-                  <div className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  <div className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
                     index <= currentStep 
                       ? 'bg-green-600 text-white shadow-lg shadow-green-600/30' 
                       : 'bg-slate-200 text-slate-500'
                   }`}>
                     {index < currentStep ? (
-                      <CheckCircle className="w-6 h-6" />
+                      <CheckCircle className="w-8 h-8" />
                     ) : (
-                      <IconComponent className="w-6 h-6" />
+                      <IconComponent className="w-8 h-8" />
                     )}
                     {index <= currentStep && (
                       <div className="absolute inset-0 bg-green-600 rounded-full animate-ping opacity-20"></div>
@@ -1188,8 +1188,8 @@ const OnboardingPage = () => {
                 {steps.map((_, index) => (
                   <div
                     key={index}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      index === currentStep ? 'bg-green-600 w-8' : 'bg-slate-300'
+                    className={`w-3 h-3 rounded-full transition-all ${
+                      index === currentStep ? 'bg-green-600 w-10' : 'bg-slate-300'
                     }`}
                   />
                 ))}
