@@ -51,8 +51,10 @@ import {
   Trophy,
   BookOpen,
   Search,
+  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
+import { CreditBalance } from "@/components/CreditBalance";
 
 const DashboardPage = () => {
   const { user, loading, signOut } = useAuth();
@@ -740,6 +742,9 @@ const DashboardPage = () => {
             </div>
 
             <div className="flex items-center space-x-4">
+              {/* Credit Balance */}
+              <CreditBalance />
+
               {/* Notifications Button */}
               <div className="relative">
                 <button
