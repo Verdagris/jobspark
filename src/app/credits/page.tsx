@@ -17,7 +17,8 @@ import {
   RefreshCw,
   FileText,
   MessageSquare,
-  ExternalLink
+  ExternalLink,
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +30,7 @@ const CreditsPage = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCreditsData = async () => {
@@ -53,57 +55,74 @@ const CreditsPage = () => {
   }, [user]);
 
   const handlePurchase = async (packageId: string) => {
-    if (!user || !credits) return;
+    if (!user || !credits) {
+      setError('Please sign in to purchase credits');
+      return;
+    }
     
     setPurchasing(packageId);
+    setError(null);
     
     try {
-      console.log('Starting purchase for package:', packageId);
+      console.log('🚀 Starting purchase for package:', packageId);
+      console.log('👤 User:', user.email);
       
-      // Get the current session token
-      const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+      // Get fresh session token
+      const { data: { session }, error: sessionError } = await (await import('@/lib/supabase')).supabase.auth.getSession();
       
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      // Add authorization header if we have a session
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
+      if (sessionError || !session) {
+        throw new Error('Authentication session expired. Please refresh the page and try again.');
       }
 
-      console.log('Making API request with headers:', headers);
+      console.log('🔑 Session token obtained');
+
+      const requestBody = {
+        packageId,
+        userEmail: user.email,
+        userName: user.user_metadata?.full_name || 'User'
+      };
+
+      console.log('📦 Request body:', requestBody);
 
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
-        headers,
-        credentials: 'include', // Include cookies
-        body: JSON.stringify({
-          packageId,
-          userEmail: user.email,
-          userName: user.user_metadata?.full_name || 'User'
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        credentials: 'include',
+        body: JSON.stringify(requestBody),
       });
 
-      console.log('API response status:', response.status);
+      console.log('📡 API response status:', response.status);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API error response:', errorData);
-        throw new Error(errorData.error || 'Failed to initiate payment');
+      const responseText = await response.text();
+      console.log('📄 Raw response:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError);
+        throw new Error('Invalid response from server. Please try again.');
       }
 
-      const data = await response.json();
-      console.log('API success response:', data);
+      if (!response.ok) {
+        console.error('❌ API error response:', data);
+        throw new Error(data.error || `Server error: ${response.status}`);
+      }
+
+      console.log('✅ API success response:', data);
 
       if (data.success && data.paymentData && data.paymentUrl) {
-        console.log('Creating payment form...');
+        console.log('💳 Creating PayFast payment form...');
         
         // Create a form and submit to PayFast
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = data.paymentUrl;
         form.style.display = 'none';
+        form.target = '_self'; // Ensure it opens in the same window
 
         // Add all payment data as hidden inputs
         Object.entries(data.paymentData).forEach(([key, value]) => {
@@ -112,17 +131,25 @@ const CreditsPage = () => {
           input.name = key;
           input.value = value as string;
           form.appendChild(input);
+          console.log(`🔧 Added form field: ${key} = ${value}`);
         });
 
         document.body.appendChild(form);
-        console.log('Submitting form to PayFast...');
-        form.submit();
+        console.log('🚀 Submitting form to PayFast:', data.paymentUrl);
+        
+        // Add a small delay to ensure the form is properly added to DOM
+        setTimeout(() => {
+          form.submit();
+        }, 100);
+        
       } else {
-        throw new Error('Invalid payment response');
+        console.error('❌ Invalid payment response structure:', data);
+        throw new Error('Invalid payment response from server');
       }
     } catch (error) {
-      console.error('Error purchasing credits:', error);
-      alert(`Failed to initiate payment: ${error instanceof Error ? error.message : 'Please try again.'}`);
+      console.error('💥 Error purchasing credits:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(`Failed to initiate payment: ${errorMessage}`);
     } finally {
       setPurchasing(null);
     }
@@ -192,6 +219,27 @@ const CreditsPage = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error Message */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6"
+          >
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <p className="text-red-800 font-medium">Payment Error</p>
+            </div>
+            <p className="text-red-700 text-sm mt-1">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-600 text-sm mt-2 hover:text-red-800 underline"
+            >
+              Dismiss
+            </button>
+          </motion.div>
+        )}
+
         {/* Current Balance */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -311,12 +359,12 @@ const CreditsPage = () => {
                     {purchasing === pkg.id ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Processing...</span>
+                        <span>Redirecting to PayFast...</span>
                       </>
                     ) : (
                       <>
                         <CreditCard className="w-4 h-4" />
-                        <span>Purchase Credits</span>
+                        <span>Buy Credits</span>
                         <ExternalLink className="w-4 h-4" />
                       </>
                     )}

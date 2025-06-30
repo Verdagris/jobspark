@@ -73,8 +73,13 @@ class PayFastClient {
       ? `${paramString}&passphrase=${encodeURIComponent(this.config.saltPassphrase)}`
       : paramString;
     
+    console.log('🔐 String to sign:', stringToSign);
+    
     // Generate MD5 hash
-    return crypto.createHash('md5').update(stringToSign).digest('hex');
+    const signature = crypto.createHash('md5').update(stringToSign).digest('hex');
+    console.log('🔑 Generated signature:', signature);
+    
+    return signature;
   }
 
   // Create payment form data
@@ -88,6 +93,8 @@ class PayFastClient {
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? 'https://jobspark.co.za' 
       : 'http://localhost:3000';
+
+    console.log('🌐 Base URL:', baseUrl);
 
     const paymentData: PayFastPaymentData = {
       merchant_id: this.config.merchantId,
@@ -105,6 +112,8 @@ class PayFastClient {
       custom_str1: purchaseId, // Store purchase ID for reference
       custom_str2: creditsAmount.toString(), // Store credits amount
     };
+
+    console.log('💳 Payment data before signature:', paymentData);
 
     const signature = this.generateSignature(paymentData as Record<string, string>);
 
@@ -151,6 +160,13 @@ export function createPayFastClient(): PayFastClient {
     saltPassphrase: process.env.PF_SALT_PASSPHRASE!,
   };
 
+  console.log('⚙️ PayFast config:', {
+    merchantId: config.merchantId ? '✅ Set' : '❌ Missing',
+    merchantKey: config.merchantKey ? '✅ Set' : '❌ Missing',
+    url: config.url,
+    saltPassphrase: config.saltPassphrase ? '✅ Set' : '❌ Missing'
+  });
+
   if (!config.merchantId || !config.merchantKey) {
     throw new Error('PayFast configuration is incomplete. Please check PF_MERCHANT_ID and PF_MERCHANT_KEY environment variables.');
   }
@@ -160,9 +176,13 @@ export function createPayFastClient(): PayFastClient {
 
 // Validate PayFast configuration
 export function validatePayFastConfig(): boolean {
-  return !!(
+  const isValid = !!(
     process.env.PF_MERCHANT_ID &&
     process.env.PF_MERCHANT_KEY &&
     process.env.PF_SALT_PASSPHRASE
   );
+  
+  console.log('🔍 PayFast config validation:', isValid ? '✅ Valid' : '❌ Invalid');
+  
+  return isValid;
 }
