@@ -21,7 +21,17 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
     if (!user) return;
     
     try {
-      const response = await fetch('/api/credits/balance');
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return;
+
+      const response = await fetch('/api/credits/balance', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      
       if (response.ok) {
         const data = await response.json();
         setBalance(data.balance);
@@ -100,7 +110,7 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
         <span className="text-xs text-slate-500">
           {interviewsAvailable} interview{interviewsAvailable !== 1 ? 's' : ''} available
         </span>
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
 };
