@@ -110,7 +110,7 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
         <span className="text-xs text-slate-500">
           {interviewsAvailable} interview{interviewsAvailable !== 1 ? 's' : ''} available
         </span>
-      </div>
-    );
-  }
+      )}
+    </div>
+  );
 };
