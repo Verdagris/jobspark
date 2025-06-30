@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -11,41 +10,34 @@ import {
   Play,
   Pause,
   RotateCcw,
+  Send,
+  Sparkles,
+  User,
+  Bot,
+  Volume2,
+  VolumeX,
+  Zap,
+  AlertTriangle,
+  CreditCard,
   CheckCircle,
-  AlertCircle,
   Clock,
   Target,
   Award,
   TrendingUp,
-  Volume2,
-  VolumeX,
-  Sparkles,
-  User,
-  Building2,
-  MapPin,
-  Calendar,
   BarChart3,
-  Zap,
-  Brain,
   Star,
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Briefcase,
-  X,
-  Settings,
   RefreshCw,
-  BookOpen,
-  Users,
-  Trophy,
-  Flame,
-  Activity
+  Settings,
+  X,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useAutoInterview } from "@/hooks/useAutoInterview";
-import { getUserSavedJobs, getSavedJobById } from "@/lib/database";
+import { CreditBalance } from "@/components/CreditBalance";
+import { CREDIT_COSTS, formatCredits } from "@/lib/credits";
 
 interface Question {
   id: number;
@@ -58,182 +50,162 @@ interface Question {
 interface SessionConfig {
   role: string;
   experienceYears: number;
-  context: string;
   sessionType: string;
   questionCount: number;
-  savedJobId?: string;
 }
 
-interface SavedJob {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  description: string;
-  practice_count: number;
+interface Analysis {
+  score: number;
+  strengths: string[];
+  improvements: string[];
+  feedback: string;
+  speechMetrics?: {
+    pace: number;
+    paceRating: string;
+    fillerWords: number;
+    fillerPercentage: number;
+    grammarScore: number;
+    clarityScore: number;
+    confidenceScore: number;
+    overallSpeechScore: number;
+  };
+  speechCoaching?: string[];
 }
 
 const InterviewPracticePage = () => {
   const { user } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   
   // Core state
-  const [currentStep, setCurrentStep] = useState<'setup' | 'practice' | 'results'>('setup');
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [responses, setResponses] = useState<any[]>([]);
-  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(0);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [finalAnalysis, setFinalAnalysis] = useState<any>(null);
-  const [encouragementMessage, setEncouragementMessage] = useState("");
-  
-  // Setup state
+  const [currentStep, setCurrentStep] = useState<'setup' | 'credits-check' | 'interview' | 'analysis' | 'final'>('setup');
   const [sessionConfig, setSessionConfig] = useState<SessionConfig>({
-    role: "",
-    experienceYears: 2,
-    context: "",
-    sessionType: "mock-interview",
-    questionCount: 3,
-    savedJobId: ""
+    role: '',
+    experienceYears: 1,
+    sessionType: 'mock-interview',
+    questionCount: 3
   });
   
-  // Saved jobs state
-  const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
-  const [selectedSavedJob, setSelectedSavedJob] = useState<SavedJob | null>(null);
-  const [showSavedJobDropdown, setShowSavedJobDropdown] = useState(false);
-  const [savedJobsLoading, setSavedJobsLoading] = useState(false);
+  // Credits state
+  const [creditsBalance, setCreditsBalance] = useState<number>(0);
+  const [hasEnoughCredits, setHasEnoughCredits] = useState<boolean>(false);
+  const [checkingCredits, setCheckingCredits] = useState<boolean>(false);
+  const [creditsError, setCreditsError] = useState<string | null>(null);
   
-  // Loading states
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [isSavingSession, setIsSavingSession] = useState(false);
+  // Interview state
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [responses, setResponses] = useState<string[]>([]);
+  const [analyses, setAnalyses] = useState<Analysis[]>([]);
+  const [finalAnalysis, setFinalAnalysis] = useState<any>(null);
   
   // Audio state
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  
+  // Interview flow state
+  const [interviewStarted, setInterviewStarted] = useState(false);
+  const [waitingForResponse, setWaitingForResponse] = useState(false);
+  const [processingResponse, setProcessingResponse] = useState(false);
+  const [showStartButton, setShowStartButton] = useState(true);
+  
+  // Loading states
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [analyzingResponse, setAnalyzingResponse] = useState(false);
+  const [generatingFinal, setGeneratingFinal] = useState(false);
+  
+  // Timers
+  const responseStartTime = useRef<number>(0);
+  const silenceTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoSubmitTimer = useRef<NodeJS.Timeout | null>(null);
   
   // Speech recognition
   const {
     isListening,
     transcript,
+    finalTranscript,
+    interimTranscript,
     startListening,
     stopListening,
     resetTranscript,
     error: speechError,
     isSupported: speechSupported
   } = useSpeechToText();
-  
-  // Auto interview
+
+  // Auto interview management
   const {
-    isWaitingForResponse,
+    isWaitingForResponse: autoWaiting,
+    silenceDetected,
     startWaitingForResponse,
     stopWaitingForResponse,
+    resetSilenceDetection,
     onSilenceDetected,
     detectSilence
-  } = useAutoInterview(3000, 15);
-  
-  // Refs
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const hasInitialized = useRef(false);
-  const isProcessingResponse = useRef(false);
+  } = useAutoInterview(3000, 20); // 3 seconds silence, 20 char minimum
 
   // Session types configuration
   const sessionTypes = [
-    { id: 'mock-interview', label: 'Full Mock Interview', description: 'Complete interview simulation' },
-    { id: 'introduction', label: 'Introduction Practice', description: 'Practice self-introduction and personal branding' },
-    { id: 'experience', label: 'Experience Questions', description: 'Behavioral and experience-based questions' },
-    { id: 'strengths-weaknesses', label: 'Strengths & Weaknesses', description: 'Self-assessment and growth mindset' },
-    { id: 'salary', label: 'Salary Negotiation', description: 'Compensation and negotiation practice' },
-    { id: 'job-specific', label: 'Job-Specific Questions', description: 'Technical and role-specific questions' }
+    { id: 'mock-interview', label: 'Full Mock Interview', description: 'Complete interview simulation', questions: 3 },
+    { id: 'introduction', label: 'Introduction Practice', description: 'Practice self-introduction', questions: 2 },
+    { id: 'experience', label: 'Experience Questions', description: 'Behavioral and experience-based', questions: 3 },
+    { id: 'strengths-weaknesses', label: 'Strengths & Weaknesses', description: 'Self-assessment questions', questions: 2 },
+    { id: 'salary', label: 'Salary Negotiation', description: 'Compensation discussions', questions: 2 },
+    { id: 'job-specific', label: 'Technical Questions', description: 'Role-specific competencies', questions: 3 }
   ];
 
-  // Initialize from URL parameters only once
+  // Check credits when component mounts or user changes
   useEffect(() => {
-    if (hasInitialized.current || !searchParams) return;
-    
-    const initializeFromParams = async () => {
+    const checkUserCredits = async () => {
+      if (!user) return;
+      
       try {
-        const jobId = searchParams.get('jobId');
-        const role = searchParams.get('role');
-        const company = searchParams.get('company');
-        const type = searchParams.get('type');
-
-        if (jobId) {
-          // Load specific saved job
-          const job = await getSavedJobById(jobId);
-          if (job) {
-            setSelectedSavedJob(job);
-            setSessionConfig(prev => ({
-              ...prev,
-              role: job.title,
-              context: job.description ? job.description.substring(0, 200) + '...' : '',
-              savedJobId: job.id
-            }));
+        const response = await fetch('/api/credits/balance', {
+          headers: {
+            'Authorization': `Bearer ${(await import('@/lib/supabase')).supabase.auth.session()?.access_token}`
           }
-        } else if (role) {
-          // Set role from URL
-          setSessionConfig(prev => ({
-            ...prev,
-            role: decodeURIComponent(role)
-          }));
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCreditsBalance(data.balance || 0);
+          setHasEnoughCredits(data.balance >= CREDIT_COSTS.INTERVIEW_SESSION);
         }
-
-        if (type && sessionTypes.find(st => st.id === type)) {
-          setSessionConfig(prev => ({
-            ...prev,
-            sessionType: type
-          }));
-        }
-
-        hasInitialized.current = true;
       } catch (error) {
-        console.error('Error initializing from URL params:', error);
-        hasInitialized.current = true;
+        console.error('Error checking credits:', error);
+        setCreditsError('Failed to check credit balance');
       }
     };
 
-    initializeFromParams();
-  }, [searchParams]);
+    checkUserCredits();
+  }, [user]);
 
-  // Load saved jobs only once when user is available
+  // Auto-submit response when silence is detected
   useEffect(() => {
-    if (!user || savedJobs.length > 0) return;
-    
-    const loadSavedJobs = async () => {
-      setSavedJobsLoading(true);
-      try {
-        const jobs = await getUserSavedJobs(user.id);
-        setSavedJobs(jobs);
-      } catch (error) {
-        console.error('Error loading saved jobs:', error);
-      } finally {
-        setSavedJobsLoading(false);
-      }
-    };
+    if (silenceDetected && transcript.trim().length > 20) {
+      handleSubmitResponse();
+    }
+  }, [silenceDetected]);
 
-    loadSavedJobs();
-  }, [user, savedJobs.length]);
+  // Monitor speech for auto-submission
+  useEffect(() => {
+    if (waitingForResponse && isListening) {
+      detectSilence(transcript, isListening);
+    }
+  }, [transcript, isListening, waitingForResponse, detectSilence]);
 
-  // Handle silence detection
+  // Setup silence detection callback
   useEffect(() => {
     onSilenceDetected(() => {
-      if (isWaitingForResponse && !isProcessingResponse.current) {
-        handleResponseComplete();
+      if (transcript.trim().length >= 20) {
+        handleSubmitResponse();
       }
     });
-  }, [isWaitingForResponse]);
+  }, [transcript, onSilenceDetected]);
 
-  // Monitor transcript for silence detection
-  useEffect(() => {
-    detectSilence(transcript, isListening);
-  }, [transcript, isListening, detectSilence]);
-
-  // Cleanup audio on unmount
+  // Cleanup timers
   useEffect(() => {
     return () => {
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      if (autoSubmitTimer.current) clearTimeout(autoSubmitTimer.current);
       if (currentAudio) {
         currentAudio.pause();
         currentAudio.src = '';
@@ -241,34 +213,59 @@ const InterviewPracticePage = () => {
     };
   }, [currentAudio]);
 
-  const handleSavedJobSelect = useCallback((job: SavedJob | null) => {
-    setSelectedSavedJob(job);
-    setShowSavedJobDropdown(false);
+  const checkCreditsBeforeStart = async () => {
+    if (!user) return false;
     
-    if (job) {
-      setSessionConfig(prev => ({
-        ...prev,
-        role: job.title,
-        context: job.description ? job.description.substring(0, 200) + '...' : '',
-        savedJobId: job.id
-      }));
-    } else {
-      setSessionConfig(prev => ({
-        ...prev,
-        role: "",
-        context: "",
-        savedJobId: ""
-      }));
-    }
-  }, []);
+    setCheckingCredits(true);
+    setCreditsError(null);
+    
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Please sign in to continue');
+      }
 
-  const generateQuestions = useCallback(async () => {
+      const response = await fetch('/api/interview/check-credits', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ questionCount: sessionConfig.questionCount })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to verify credits');
+      }
+
+      const data = await response.json();
+      setHasEnoughCredits(data.hasCredits);
+      
+      if (!data.hasCredits) {
+        setCreditsError(`You need ${data.creditsNeeded} credits to start this interview session. You currently have ${creditsBalance} credits.`);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking credits:', error);
+      setCreditsError(error instanceof Error ? error.message : 'Failed to verify credits');
+      return false;
+    } finally {
+      setCheckingCredits(false);
+    }
+  };
+
+  const generateQuestions = async () => {
     if (!sessionConfig.role.trim()) {
-      alert('Please enter a role to practice for');
+      alert('Please enter a job role');
       return;
     }
 
-    setIsGeneratingQuestions(true);
+    setLoadingQuestions(true);
     try {
       const response = await fetch('/api/interview/generate-questions', {
         method: 'POST',
@@ -276,7 +273,6 @@ const InterviewPracticePage = () => {
         body: JSON.stringify({
           role: sessionConfig.role,
           experienceYears: sessionConfig.experienceYears,
-          context: sessionConfig.context,
           sessionType: sessionConfig.sessionType,
           questionCount: sessionConfig.questionCount
         })
@@ -286,120 +282,124 @@ const InterviewPracticePage = () => {
 
       const data = await response.json();
       setQuestions(data.questions);
-      setCurrentStep('practice');
-      setSessionStartTime(Date.now());
-      
-      // Load encouragement message
-      if (user) {
-        try {
-          const encResponse = await fetch('/api/interview/encouragement', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: user.id,
-              type: 'pre-session',
-              sessionType: sessionConfig.sessionType
-            })
-          });
-          
-          if (encResponse.ok) {
-            const encData = await encResponse.json();
-            setEncouragementMessage(encData.message);
-          }
-        } catch (error) {
-          console.error('Error loading encouragement:', error);
-        }
-      }
-      
+      setCurrentStep('credits-check');
     } catch (error) {
       console.error('Error generating questions:', error);
       alert('Failed to generate questions. Please try again.');
     } finally {
-      setIsGeneratingQuestions(false);
+      setLoadingQuestions(false);
     }
-  }, [sessionConfig, user]);
+  };
 
-  const playQuestionAudio = useCallback(async (questionText: string) => {
+  const startInterview = async () => {
+    const hasCredits = await checkCreditsBeforeStart();
+    if (!hasCredits) return;
+    
+    setCurrentStep('interview');
+    setInterviewStarted(false);
+    setShowStartButton(true);
+    
+    // Play first question after a short delay
+    setTimeout(() => {
+      if (audioEnabled && questions[0]) {
+        playQuestionAudio(questions[0].question);
+      }
+    }, 1000);
+  };
+
+  const handleStartSpeaking = () => {
+    if (!speechSupported) {
+      alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    setInterviewStarted(true);
+    setShowStartButton(false);
+    setWaitingForResponse(true);
+    responseStartTime.current = Date.now();
+    
+    // Start listening and auto-interview flow
+    startListening();
+    startWaitingForResponse();
+    resetSilenceDetection();
+    
+    // Auto-submit after 3 minutes if no response
+    autoSubmitTimer.current = setTimeout(() => {
+      if (transcript.trim().length > 0) {
+        handleSubmitResponse();
+      }
+    }, 180000); // 3 minutes
+  };
+
+  const playQuestionAudio = async (text: string) => {
     if (!audioEnabled) return;
-
-    setIsLoadingAudio(true);
+    
     try {
+      setIsPlaying(true);
+      
       const response = await fetch('/api/interview/text-to-speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: questionText,
-          messageType: 'question'
+        body: JSON.stringify({ 
+          text, 
+          messageType: 'question',
+          voiceId: 'gsm4lUH9bnZ3pjR1Pw7w' // Professional female voice
         })
       });
 
-      if (!response.ok) throw new Error('Failed to generate audio');
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.src = '';
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        setCurrentAudio(audio);
+        
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(audioUrl);
+          setCurrentAudio(null);
+        };
+        
+        audio.onerror = () => {
+          setIsPlaying(false);
+          console.error('Audio playback failed');
+        };
+        
+        await audio.play();
       }
-
-      const audio = new Audio(audioUrl);
-      setCurrentAudio(audio);
-      setIsPlayingAudio(true);
-
-      audio.onended = () => {
-        setIsPlayingAudio(false);
-        URL.revokeObjectURL(audioUrl);
-        startWaitingForResponse();
-      };
-
-      audio.onerror = () => {
-        setIsPlayingAudio(false);
-        URL.revokeObjectURL(audioUrl);
-        console.error('Audio playback error');
-      };
-
-      await audio.play();
     } catch (error) {
       console.error('Error playing audio:', error);
-      setIsPlayingAudio(false);
-      startWaitingForResponse();
-    } finally {
-      setIsLoadingAudio(false);
+      setIsPlaying(false);
     }
-  }, [audioEnabled, currentAudio, startWaitingForResponse]);
+  };
 
-  const startQuestion = useCallback(async () => {
-    if (currentQuestionIndex >= questions.length) return;
-
-    const question = questions[currentQuestionIndex];
-    setQuestionStartTime(Date.now());
-    resetTranscript();
-    stopWaitingForResponse();
-
-    await playQuestionAudio(question.question);
-  }, [currentQuestionIndex, questions, resetTranscript, stopWaitingForResponse, playQuestionAudio]);
-
-  const handleResponseComplete = useCallback(async () => {
-    if (isProcessingResponse.current || !transcript.trim()) return;
+  const handleSubmitResponse = async () => {
+    if (processingResponse || !transcript.trim()) return;
     
-    isProcessingResponse.current = true;
-    setIsAnalyzing(true);
+    setProcessingResponse(true);
+    setWaitingForResponse(false);
     stopListening();
     stopWaitingForResponse();
+    
+    if (autoSubmitTimer.current) {
+      clearTimeout(autoSubmitTimer.current);
+      autoSubmitTimer.current = null;
+    }
 
+    const currentResponse = transcript.trim();
+    const duration = Date.now() - responseStartTime.current;
+    
     try {
-      const question = questions[currentQuestionIndex];
-      const duration = Date.now() - questionStartTime;
-
+      setAnalyzingResponse(true);
+      
       const response = await fetch('/api/interview/analyze-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question: question.question,
-          response: transcript,
-          questionType: question.type,
-          keyPoints: question.keyPoints,
+          question: questions[currentQuestionIndex].question,
+          response: currentResponse,
+          questionType: questions[currentQuestionIndex].type,
+          keyPoints: questions[currentQuestionIndex].keyPoints,
           role: sessionConfig.role,
           experienceYears: sessionConfig.experienceYears,
           duration,
@@ -411,146 +411,749 @@ const InterviewPracticePage = () => {
 
       const analysis = await response.json();
       
-      const responseData = {
-        question: question.question,
-        response: transcript,
-        analysis,
-        duration,
-        type: question.type
-      };
-
-      setResponses(prev => [...prev, responseData]);
-
+      // Update state
+      setResponses(prev => [...prev, currentResponse]);
+      setAnalyses(prev => [...prev, analysis]);
+      
+      // Move to next question or finish
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         resetTranscript();
+        
+        // Auto-play next question and continue conversation
+        setTimeout(() => {
+          const nextQuestion = questions[currentQuestionIndex + 1];
+          if (audioEnabled && nextQuestion) {
+            playQuestionAudio(nextQuestion.question);
+          }
+          
+          // Automatically start listening for next response
+          setTimeout(() => {
+            setWaitingForResponse(true);
+            responseStartTime.current = Date.now();
+            startListening();
+            startWaitingForResponse();
+            resetSilenceDetection();
+            
+            // Auto-submit timer for next question
+            autoSubmitTimer.current = setTimeout(() => {
+              if (transcript.trim().length > 0) {
+                handleSubmitResponse();
+              }
+            }, 180000);
+          }, 2000); // 2 second delay after question audio
+        }, 1000);
       } else {
-        await completeSession([...responses, responseData]);
+        // Interview complete
+        generateFinalAnalysis();
       }
     } catch (error) {
       console.error('Error analyzing response:', error);
       alert('Failed to analyze response. Please try again.');
     } finally {
-      setIsAnalyzing(false);
-      isProcessingResponse.current = false;
+      setAnalyzingResponse(false);
+      setProcessingResponse(false);
     }
-  }, [transcript, currentQuestionIndex, questions, questionStartTime, sessionConfig, responses, stopListening, stopWaitingForResponse, resetTranscript]);
+  };
 
-  const completeSession = useCallback(async (allResponses: any[]) => {
-    setIsSavingSession(true);
+  const generateFinalAnalysis = async () => {
+    setGeneratingFinal(true);
+    
     try {
-      const totalDuration = Date.now() - sessionStartTime;
+      const sessionData = {
+        questions: questions.map((q, i) => ({
+          question: q.question,
+          response: responses[i] || '',
+          score: analyses[i]?.score || 0,
+          type: q.type
+        })),
+        overallDuration: Date.now() - responseStartTime.current,
+        sessionType: sessionConfig.sessionType
+      };
 
-      const finalResponse = await fetch('/api/interview/final-analysis', {
+      const response = await fetch('/api/interview/final-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           role: sessionConfig.role,
           experienceYears: sessionConfig.experienceYears,
-          responses: allResponses.map(r => ({
-            question: r.question,
-            response: r.response,
-            score: r.analysis.score,
-            type: r.type
-          })),
-          overallDuration: totalDuration,
+          responses: sessionData.questions,
+          overallDuration: sessionData.overallDuration,
           sessionType: sessionConfig.sessionType
         })
       });
 
       if (!response.ok) throw new Error('Failed to generate final analysis');
 
-      const finalData = await finalResponse.json();
+      const finalData = await response.json();
       setFinalAnalysis(finalData);
-
-      if (user) {
-        await fetch('/api/interview/save-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user.id,
-            role: sessionConfig.role,
-            experienceYears: sessionConfig.experienceYears,
-            context: sessionConfig.context,
-            overallScore: finalData.overallScore,
-            durationMinutes: Math.round(totalDuration / 60000),
-            questionsCount: questions.length,
-            sessionData: {
-              questions,
-              responses: allResponses,
-              saved_job_id: sessionConfig.savedJobId
-            },
-            insights: finalData,
-            sessionType: sessionConfig.sessionType
-          })
-        });
-      }
-
-      setCurrentStep('results');
+      
+      // Save session to database
+      await fetch('/api/interview/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          role: sessionConfig.role,
+          experienceYears: sessionConfig.experienceYears,
+          overallScore: finalData.overallScore,
+          durationMinutes: Math.round(sessionData.overallDuration / 60000),
+          questionsCount: questions.length,
+          sessionData,
+          insights: finalData,
+          sessionType: sessionConfig.sessionType
+        })
+      });
+      
+      setCurrentStep('final');
     } catch (error) {
-      console.error('Error completing session:', error);
-      alert('Failed to save session. Please try again.');
+      console.error('Error generating final analysis:', error);
+      alert('Failed to generate final analysis. Please try again.');
     } finally {
-      setIsSavingSession(false);
+      setGeneratingFinal(false);
     }
-  }, [sessionStartTime, sessionConfig, questions, user]);
+  };
 
-  const handleStartRecording = useCallback(() => {
-    if (!isListening) {
-      startListening();
-    }
-  }, [isListening, startListening]);
-
-  const handleStopRecording = useCallback(() => {
-    if (isListening) {
-      stopListening();
-      if (transcript.trim()) {
-        handleResponseComplete();
-      }
-    }
-  }, [isListening, stopListening, transcript, handleResponseComplete]);
-
-  const restartSession = useCallback(() => {
+  const resetInterview = () => {
     setCurrentStep('setup');
     setQuestions([]);
     setCurrentQuestionIndex(0);
     setResponses([]);
+    setAnalyses([]);
     setFinalAnalysis(null);
+    setInterviewStarted(false);
+    setWaitingForResponse(false);
+    setProcessingResponse(false);
+    setShowStartButton(true);
     resetTranscript();
+    stopListening();
     stopWaitingForResponse();
+    
     if (currentAudio) {
       currentAudio.pause();
-      currentAudio.src = '';
+      setCurrentAudio(null);
     }
-    setIsPlayingAudio(false);
-  }, [resetTranscript, stopWaitingForResponse, currentAudio]);
+    
+    if (autoSubmitTimer.current) {
+      clearTimeout(autoSubmitTimer.current);
+      autoSubmitTimer.current = null;
+    }
+  };
 
-  // Start first question when practice begins
-  useEffect(() => {
-    if (currentStep === 'practice' && questions.length > 0 && currentQuestionIndex === 0 && questionStartTime === 0) {
-      startQuestion();
+  const toggleAudio = () => {
+    setAudioEnabled(!audioEnabled);
+    if (currentAudio && !audioEnabled) {
+      currentAudio.pause();
+      setIsPlaying(false);
     }
-  }, [currentStep, questions.length, currentQuestionIndex, questionStartTime, startQuestion]);
+  };
 
-  // Start next question when index changes
-  useEffect(() => {
-    if (currentStep === 'practice' && currentQuestionIndex > 0 && currentQuestionIndex < questions.length) {
-      const timer = setTimeout(() => {
-        startQuestion();
-      }, 2000);
-      return () => clearTimeout(timer);
+  const stopCurrentAudio = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      setIsPlaying(false);
     }
-  }, [currentQuestionIndex, currentStep, questions.length, startQuestion]);
+  };
+
+  // Render setup step
+  const renderSetup = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-2xl mx-auto"
+    >
+      <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageSquare className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Interview Practice Setup</h2>
+          <p className="text-slate-600">Configure your practice session</p>
+        </div>
+
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Job Role *
+            </label>
+            <input
+              type="text"
+              value={sessionConfig.role}
+              onChange={(e) => setSessionConfig(prev => ({ ...prev, role: e.target.value }))}
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="e.g., Software Engineer, Marketing Manager"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Years of Experience
+            </label>
+            <select
+              value={sessionConfig.experienceYears}
+              onChange={(e) => setSessionConfig(prev => ({ ...prev, experienceYears: parseInt(e.target.value) }))}
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              {[...Array(20)].map((_, i) => (
+                <option key={i} value={i + 1}>{i + 1} year{i > 0 ? 's' : ''}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Session Type
+            </label>
+            <div className="grid md:grid-cols-2 gap-3">
+              {sessionTypes.map((type) => (
+                <div
+                  key={type.id}
+                  onClick={() => setSessionConfig(prev => ({ 
+                    ...prev, 
+                    sessionType: type.id,
+                    questionCount: type.questions 
+                  }))}
+                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    sessionConfig.sessionType === type.id
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-slate-200 hover:border-purple-300'
+                  }`}
+                >
+                  <h3 className="font-semibold text-slate-900 mb-1">{type.label}</h3>
+                  <p className="text-sm text-slate-600 mb-2">{type.description}</p>
+                  <span className="text-xs text-purple-600 font-medium">
+                    {type.questions} questions
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <Zap className="w-5 h-5 text-purple-600" />
+              <span className="font-medium text-purple-900">Credit Cost</span>
+            </div>
+            <p className="text-purple-800 text-sm">
+              This interview session will cost <strong>{CREDIT_COSTS.INTERVIEW_SESSION} credits</strong> regardless of the number of questions.
+            </p>
+          </div>
+
+          <button
+            onClick={generateQuestions}
+            disabled={!sessionConfig.role.trim() || loadingQuestions}
+            className="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          >
+            {loadingQuestions ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Generating Questions...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-5 h-5" />
+                <span>Generate Questions</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  // Render credits check step
+  const renderCreditsCheck = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-2xl mx-auto"
+    >
+      <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CreditCard className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Credit Verification</h2>
+          <p className="text-slate-600">Checking your credit balance</p>
+        </div>
+
+        <div className="space-y-6">
+          {/* Current Balance */}
+          <div className="bg-slate-50 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-slate-600">Current Balance</span>
+              <div className="flex items-center space-x-2">
+                <Zap className="w-5 h-5 text-green-600" />
+                <span className="text-2xl font-bold text-slate-900">
+                  {formatCredits(creditsBalance)}
+                </span>
+                <span className="text-slate-600">credits</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600">Session Cost</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-lg font-semibold text-slate-900">
+                  {CREDIT_COSTS.INTERVIEW_SESSION}
+                </span>
+                <span className="text-slate-600">credits</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Session Details */}
+          <div className="border border-slate-200 rounded-xl p-6">
+            <h3 className="font-semibold text-slate-900 mb-4">Session Details</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Role</span>
+                <span className="font-medium text-slate-900">{sessionConfig.role}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Experience</span>
+                <span className="font-medium text-slate-900">{sessionConfig.experienceYears} years</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Session Type</span>
+                <span className="font-medium text-slate-900">
+                  {sessionTypes.find(t => t.id === sessionConfig.sessionType)?.label}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Questions</span>
+                <span className="font-medium text-slate-900">{questions.length}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {creditsError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className="flex items-center space-x-2 mb-2">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <span className="font-medium text-red-900">Insufficient Credits</span>
+              </div>
+              <p className="text-red-800 text-sm">{creditsError}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setCurrentStep('setup')}
+              className="flex-1 border border-slate-200 text-slate-600 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-colors"
+            >
+              Back to Setup
+            </button>
+            
+            {hasEnoughCredits ? (
+              <button
+                onClick={startInterview}
+                disabled={checkingCredits}
+                className="flex-1 bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {checkingCredits ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Verifying...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5" />
+                    <span>Start Interview</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <Link href="/credits" className="flex-1">
+                <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center space-x-2">
+                  <Plus className="w-5 h-5" />
+                  <span>Buy Credits</span>
+                </button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  // Render interview step
+  const renderInterview = () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-4xl mx-auto"
+      >
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-slate-700">
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </span>
+            <span className="text-sm text-slate-500">{Math.round(progress)}% Complete</span>
+          </div>
+          <div className="w-full bg-slate-200 rounded-full h-2">
+            <div 
+              className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Interview Area */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+              {/* Question */}
+              <div className="mb-8">
+                <div className="flex items-start space-x-4 mb-6">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-purple-50 rounded-xl p-4">
+                      <p className="text-slate-900 font-medium">{currentQuestion?.question}</p>
+                    </div>
+                    <div className="flex items-center space-x-4 mt-3">
+                      <button
+                        onClick={() => playQuestionAudio(currentQuestion?.question || '')}
+                        disabled={isPlaying}
+                        className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 transition-colors disabled:opacity-50"
+                      >
+                        {isPlaying ? (
+                          <Volume2 className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                        <span className="text-sm">{isPlaying ? 'Playing...' : 'Replay Question'}</span>
+                      </button>
+                      
+                      <button
+                        onClick={toggleAudio}
+                        className="flex items-center space-x-2 text-slate-500 hover:text-slate-700 transition-colors"
+                      >
+                        {audioEnabled ? (
+                          <Volume2 className="w-4 h-4" />
+                        ) : (
+                          <VolumeX className="w-4 h-4" />
+                        )}
+                        <span className="text-sm">{audioEnabled ? 'Audio On' : 'Audio Off'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Response Area */}
+              <div className="space-y-6">
+                {/* User Response */}
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-green-50 rounded-xl p-4 min-h-[120px]">
+                      {transcript ? (
+                        <div>
+                          <p className="text-slate-900">{finalTranscript}</p>
+                          {interimTranscript && (
+                            <p className="text-slate-500 italic">{interimTranscript}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-slate-500 italic">
+                          {showStartButton 
+                            ? "Click 'Start Speaking' to begin your response..."
+                            : waitingForResponse 
+                              ? "Listening... Speak your response now."
+                              : "Waiting for your response..."
+                          }
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Controls */}
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center space-x-4">
+                        {showStartButton ? (
+                          <button
+                            onClick={handleStartSpeaking}
+                            disabled={!speechSupported}
+                            className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
+                          >
+                            <Mic className="w-5 h-5" />
+                            <span>Start Speaking</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center space-x-3">
+                            {isListening && (
+                              <div className="flex items-center space-x-2 text-green-600">
+                                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                                <span className="text-sm font-medium">Listening...</span>
+                              </div>
+                            )}
+                            
+                            {processingResponse && (
+                              <div className="flex items-center space-x-2 text-purple-600">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span className="text-sm font-medium">Processing...</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {!showStartButton && transcript.trim().length > 20 && !processingResponse && (
+                          <button
+                            onClick={handleSubmitResponse}
+                            className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                          >
+                            <Send className="w-4 h-4" />
+                            <span>Submit Response</span>
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="text-sm text-slate-500">
+                        {transcript.trim().length > 0 && (
+                          <span>{transcript.trim().length} characters</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Session Info */}
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+              <h3 className="font-semibold text-slate-900 mb-4">Session Info</h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm text-slate-600">Role</span>
+                  <p className="font-medium text-slate-900">{sessionConfig.role}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-slate-600">Experience</span>
+                  <p className="font-medium text-slate-900">{sessionConfig.experienceYears} years</p>
+                </div>
+                <div>
+                  <span className="text-sm text-slate-600">Type</span>
+                  <p className="font-medium text-slate-900">
+                    {sessionTypes.find(t => t.id === sessionConfig.sessionType)?.label}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tips */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <h3 className="font-semibold text-blue-900 mb-3">💡 Interview Tips</h3>
+              <ul className="text-sm text-blue-800 space-y-2">
+                <li>• Speak clearly and at a moderate pace</li>
+                <li>• Use the STAR method for behavioral questions</li>
+                <li>• Provide specific examples from your experience</li>
+                <li>• The interview will automatically move to the next question when you finish</li>
+                <li>• Take your time to think before responding</li>
+              </ul>
+            </div>
+
+            {/* Audio Controls */}
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+              <h3 className="font-semibold text-slate-900 mb-4">Audio Settings</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={toggleAudio}
+                  className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    audioEnabled 
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {audioEnabled ? (
+                    <>
+                      <Volume2 className="w-4 h-4" />
+                      <span>Audio Enabled</span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX className="w-4 h-4" />
+                      <span>Audio Disabled</span>
+                    </>
+                  )}
+                </button>
+                
+                {isPlaying && (
+                  <button
+                    onClick={stopCurrentAudio}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors"
+                  >
+                    <Pause className="w-4 h-4" />
+                    <span>Stop Audio</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  // Render final analysis step
+  const renderFinalAnalysis = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-4xl mx-auto"
+    >
+      <div className="text-center mb-8">
+        <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="w-10 h-10 text-white" />
+        </div>
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">Interview Complete!</h2>
+        <p className="text-slate-600">Here's your detailed performance analysis</p>
+      </div>
+
+      {finalAnalysis && (
+        <div className="space-y-8">
+          {/* Overall Score */}
+          <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm text-center">
+            <div className="mb-6">
+              <div className="text-6xl font-bold text-slate-900 mb-2">
+                {finalAnalysis.overallScore}
+              </div>
+              <div className="text-slate-600">Overall Score</div>
+            </div>
+            
+            <div className="flex justify-center mb-6">
+              <div className="flex space-x-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-6 h-6 ${
+                      i < Math.round(finalAnalysis.overallScore / 20)
+                        ? 'text-yellow-400 fill-current'
+                        : 'text-slate-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            <p className="text-slate-700 text-lg">{finalAnalysis.overallFeedback}</p>
+          </div>
+
+          {/* Category Scores */}
+          <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+            <h3 className="text-xl font-bold text-slate-900 mb-6">Performance Breakdown</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              {Object.entries(finalAnalysis.categoryScores || {}).map(([category, score]) => (
+                <div key={category} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-slate-900 capitalize">
+                      {category.replace(/([A-Z])/g, ' $1').trim()}
+                    </span>
+                    <span className="font-bold text-slate-900">{score}/100</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-1000"
+                      style={{ width: `${score}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Strengths and Improvements */}
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+              <h3 className="font-bold text-green-900 mb-4 flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5" />
+                <span>Strengths</span>
+              </h3>
+              <ul className="space-y-2">
+                {finalAnalysis.strengths?.map((strength: string, index: number) => (
+                  <li key={index} className="text-green-800 flex items-start space-x-2">
+                    <span className="text-green-500 mt-1">•</span>
+                    <span>{strength}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
+              <h3 className="font-bold text-orange-900 mb-4 flex items-center space-x-2">
+                <TrendingUp className="w-5 h-5" />
+                <span>Areas for Improvement</span>
+              </h3>
+              <ul className="space-y-2">
+                {finalAnalysis.areasForImprovement?.map((improvement: string, index: number) => (
+                  <li key={index} className="text-orange-800 flex items-start space-x-2">
+                    <span className="text-orange-500 mt-1">•</span>
+                    <span>{improvement}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Recommendations */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+            <h3 className="font-bold text-blue-900 mb-4 flex items-center space-x-2">
+              <Target className="w-5 h-5" />
+              <span>Recommendations</span>
+            </h3>
+            <ul className="space-y-2">
+              {finalAnalysis.recommendations?.map((recommendation: string, index: number) => (
+                <li key={index} className="text-blue-800 flex items-start space-x-2">
+                  <span className="text-blue-500 mt-1">•</span>
+                  <span>{recommendation}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={resetInterview}
+              className="flex items-center space-x-2 px-6 py-3 border border-slate-200 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 transition-colors"
+            >
+              <RotateCcw className="w-5 h-5" />
+              <span>Practice Again</span>
+            </button>
+            
+            <Link href="/dashboard">
+              <button className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors">
+                <Award className="w-5 h-5" />
+                <span>View Dashboard</span>
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
 
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <MessageSquare className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">Authentication Required</h2>
-          <p className="text-slate-600 mb-4">Please sign in to access interview practice.</p>
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">Please sign in</h2>
+          <p className="text-slate-600 mb-4">You need to be signed in to practice interviews.</p>
           <Link href="/auth">
-            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+            <button className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
               Sign In
             </button>
           </Link>
@@ -585,800 +1188,30 @@ const InterviewPracticePage = () => {
               </div>
             </div>
             
-            {currentStep === 'practice' && (
-              <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
+              <CreditBalance />
+              
+              {currentStep === 'interview' && (
                 <button
-                  onClick={() => setAudioEnabled(!audioEnabled)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    audioEnabled ? 'text-green-600 bg-green-100' : 'text-slate-400 bg-slate-100'
-                  }`}
+                  onClick={resetInterview}
+                  className="flex items-center space-x-2 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                 >
-                  {audioEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                  <X className="w-4 h-4" />
+                  <span>End Session</span>
                 </button>
-                <button
-                  onClick={restartSession}
-                  className="flex items-center space-x-2 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>End Interview</span>
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </header>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
-          {/* Setup Step */}
-          {currentStep === 'setup' && (
-            <motion.div
-              key="setup"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-4xl mx-auto"
-            >
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-slate-900 mb-4">Set Up Your Interview Practice</h2>
-                <p className="text-lg text-slate-600">Configure your practice session for the best experience</p>
-              </div>
-
-              <div className="grid lg:grid-cols-3 gap-8">
-                {/* Main Configuration */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Saved Job Selection */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                      <Briefcase className="w-5 h-5 text-blue-500" />
-                      <span>Practice for a Specific Job (Optional)</span>
-                    </h3>
-                    
-                    {savedJobsLoading ? (
-                      <div className="flex items-center space-x-2 text-slate-500">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Loading saved jobs...</span>
-                      </div>
-                    ) : savedJobs.length > 0 ? (
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowSavedJobDropdown(!showSavedJobDropdown)}
-                          className="w-full flex items-center justify-between px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <Search className="w-5 h-5 text-slate-400" />
-                            <span className="text-slate-700">
-                              {selectedSavedJob ? `${selectedSavedJob.title} at ${selectedSavedJob.company}` : 'Select a saved job to practice for'}
-                            </span>
-                          </div>
-                          {showSavedJobDropdown ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-                        </button>
-                        
-                        {showSavedJobDropdown && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
-                            <button
-                              onClick={() => handleSavedJobSelect(null)}
-                              className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100"
-                            >
-                              <span className="text-slate-600">Practice generally (no specific job)</span>
-                            </button>
-                            {savedJobs.map((job) => (
-                              <button
-                                key={job.id}
-                                onClick={() => handleSavedJobSelect(job)}
-                                className="w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="font-medium text-slate-900">{job.title}</p>
-                                    <div className="flex items-center space-x-4 text-sm text-slate-500">
-                                      <span className="flex items-center space-x-1">
-                                        <Building2 className="w-3 h-3" />
-                                        <span>{job.company}</span>
-                                      </span>
-                                      {job.location && (
-                                        <span className="flex items-center space-x-1">
-                                          <MapPin className="w-3 h-3" />
-                                          <span>{job.location}</span>
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {job.practice_count > 0 && (
-                                    <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full">
-                                      {job.practice_count} practice{job.practice_count > 1 ? 's' : ''}
-                                    </span>
-                                  )}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 text-slate-500">
-                        <p className="mb-2">No saved jobs found</p>
-                        <Link href="/job-search">
-                          <button className="text-blue-600 hover:text-blue-800 text-sm">
-                            Browse and save jobs →
-                          </button>
-                        </Link>
-                      </div>
-                    )}
-
-                    {selectedSavedJob && (
-                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Building2 className="w-4 h-4 text-blue-600" />
-                          <span className="font-medium text-blue-900">{selectedSavedJob.company}</span>
-                        </div>
-                        {selectedSavedJob.location && (
-                          <div className="flex items-center space-x-2 mb-2 text-sm text-blue-700">
-                            <MapPin className="w-4 h-4" />
-                            <span>{selectedSavedJob.location}</span>
-                          </div>
-                        )}
-                        {selectedSavedJob.practice_count > 0 && (
-                          <div className="text-sm text-blue-600">
-                            You've practiced for this role {selectedSavedJob.practice_count} time{selectedSavedJob.practice_count > 1 ? 's' : ''} before
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Role and Experience */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4">Role & Experience</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Role/Position {selectedSavedJob && <span className="text-blue-600">(auto-filled)</span>}
-                        </label>
-                        <input
-                          type="text"
-                          value={sessionConfig.role}
-                          onChange={(e) => setSessionConfig(prev => ({ ...prev, role: e.target.value }))}
-                          disabled={!!selectedSavedJob}
-                          className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-slate-50 disabled:text-slate-500"
-                          placeholder="e.g., Software Engineer, Marketing Manager"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Years of Experience</label>
-                        <select
-                          value={sessionConfig.experienceYears}
-                          onChange={(e) => setSessionConfig(prev => ({ ...prev, experienceYears: parseInt(e.target.value) }))}
-                          className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        >
-                          <option value={0}>Entry Level (0-1 years)</option>
-                          <option value={2}>Junior (2-3 years)</option>
-                          <option value={5}>Mid-level (4-6 years)</option>
-                          <option value={8}>Senior (7-10 years)</option>
-                          <option value={12}>Lead/Principal (10+ years)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Session Type */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4">Practice Type</h3>
-                    <div className="grid md:grid-cols-2 gap-3">
-                      {sessionTypes.map((type) => (
-                        <button
-                          key={type.id}
-                          onClick={() => setSessionConfig(prev => ({ ...prev, sessionType: type.id }))}
-                          className={`p-4 text-left border rounded-lg transition-all ${
-                            sessionConfig.sessionType === type.id
-                              ? 'border-purple-500 bg-purple-50 text-purple-700'
-                              : 'border-slate-200 hover:border-purple-300 text-slate-700'
-                          }`}
-                        >
-                          <h4 className="font-medium mb-1">{type.label}</h4>
-                          <p className="text-sm opacity-75">{type.description}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Question Count */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4">Number of Questions</h3>
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm text-slate-600">2</span>
-                      <input
-                        type="range"
-                        min="2"
-                        max="5"
-                        value={sessionConfig.questionCount}
-                        onChange={(e) => setSessionConfig(prev => ({ ...prev, questionCount: parseInt(e.target.value) }))}
-                        className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <span className="text-sm text-slate-600">5</span>
-                      <div className="ml-4 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                        {sessionConfig.questionCount} questions
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                      Recommended: 3-4 questions for focused practice, 5 for comprehensive sessions
-                    </p>
-                  </div>
-
-                  {/* Additional Context */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4">
-                      Additional Context {selectedSavedJob && <span className="text-blue-600">(auto-filled from job)</span>}
-                    </h3>
-                    <textarea
-                      value={sessionConfig.context}
-                      onChange={(e) => setSessionConfig(prev => ({ ...prev, context: e.target.value }))}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                      rows={4}
-                      placeholder="Any specific requirements, company info, or focus areas..."
-                    />
-                  </div>
-                </div>
-
-                {/* Sidebar */}
-                <div className="space-y-6">
-                  {/* Session Info */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                      <Target className="w-5 h-5 text-purple-500" />
-                      <span>Session Info</span>
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Questions</span>
-                        <span className="font-medium text-slate-900">{sessionConfig.questionCount}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Est. Duration</span>
-                        <span className="font-medium text-slate-900">{sessionConfig.questionCount * 2}-{sessionConfig.questionCount * 3} min</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Type</span>
-                        <span className="font-medium text-slate-900">
-                          {sessionTypes.find(t => t.id === sessionConfig.sessionType)?.label}
-                        </span>
-                      </div>
-                      {selectedSavedJob && (
-                        <div className="pt-3 border-t border-slate-200">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-slate-600">Company</span>
-                            <span className="font-medium text-slate-900">{selectedSavedJob.company}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Tips */}
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                      <BookOpen className="w-5 h-5 text-purple-500" />
-                      <span>Interview Tips</span>
-                    </h3>
-                    <ul className="space-y-2 text-sm text-slate-700">
-                      <li className="flex items-start space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Use the STAR method for behavioral questions</span>
-                      </li>
-                      <li className="flex items-start space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Speak clearly and at a moderate pace</span>
-                      </li>
-                      <li className="flex items-start space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Provide specific examples with metrics</span>
-                      </li>
-                      <li className="flex items-start space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Practice in a quiet environment</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Start Button */}
-                  <button
-                    onClick={generateQuestions}
-                    disabled={!sessionConfig.role.trim() || isGeneratingQuestions}
-                    className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                  >
-                    {isGeneratingQuestions ? (
-                      <>
-                        <RefreshCw className="w-5 h-5 animate-spin" />
-                        <span>Generating Questions...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-5 h-5" />
-                        <span>Start Interview Practice</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Practice Step */}
-          {currentStep === 'practice' && questions.length > 0 && (
-            <motion.div
-              key="practice"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-6xl mx-auto"
-            >
-              <div className="grid lg:grid-cols-3 gap-8">
-                {/* Main Practice Area */}
-                <div className="lg:col-span-2">
-                  {/* Progress Bar */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-semibold text-slate-900">
-                        Question {currentQuestionIndex + 1} of {questions.length}
-                      </h3>
-                      <span className="text-sm text-slate-600">
-                        {sessionTypes.find(t => t.id === sessionConfig.sessionType)?.label}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Question Display */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-8 mb-6">
-                    <div className="flex items-start space-x-4 mb-6">
-                      <div className="p-3 bg-purple-100 rounded-full">
-                        <MessageSquare className="w-6 h-6 text-purple-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                          {questions[currentQuestionIndex]?.question}
-                        </h3>
-                        <div className="flex items-center space-x-4 text-sm text-slate-600">
-                          <span className="flex items-center space-x-1">
-                            <Clock className="w-4 h-4" />
-                            <span>Expected: {Math.round(questions[currentQuestionIndex]?.expectedDuration / 60)}min</span>
-                          </span>
-                          <span className="flex items-center space-x-1">
-                            <Target className="w-4 h-4" />
-                            <span>{questions[currentQuestionIndex]?.type}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Audio Controls */}
-                    <div className="flex items-center justify-center space-x-4 mb-6">
-                      {isLoadingAudio ? (
-                        <div className="flex items-center space-x-2 text-purple-600">
-                          <RefreshCw className="w-5 h-5 animate-spin" />
-                          <span>Loading audio...</span>
-                        </div>
-                      ) : isPlayingAudio ? (
-                        <div className="flex items-center space-x-2 text-purple-600">
-                          <Volume2 className="w-5 h-5" />
-                          <span>Playing question...</span>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => playQuestionAudio(questions[currentQuestionIndex]?.question)}
-                          className="flex items-center space-x-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
-                        >
-                          <Play className="w-4 h-4" />
-                          <span>Replay Question</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Recording Controls */}
-                    <div className="text-center">
-                      {isWaitingForResponse && (
-                        <div className="mb-4">
-                          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-full">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                            <span>Listening for your response...</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-center space-x-4">
-                        <button
-                          onClick={handleStartRecording}
-                          disabled={isListening || isAnalyzing}
-                          className={`p-4 rounded-full transition-all ${
-                            isListening 
-                              ? 'bg-red-500 text-white' 
-                              : 'bg-green-500 hover:bg-green-600 text-white'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-                        </button>
-                        
-                        {isListening && (
-                          <button
-                            onClick={handleStopRecording}
-                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                          >
-                            Stop & Submit
-                          </button>
-                        )}
-                      </div>
-
-                      <p className="text-sm text-slate-600 mt-4">
-                        {isListening 
-                          ? 'Speak your answer. Click "Stop & Submit" when finished.' 
-                          : 'Click the microphone to start recording your answer'
-                        }
-                      </p>
-
-                      {speechError && (
-                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                          <p className="text-red-700 text-sm">{speechError}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Transcript Display */}
-                  {transcript && (
-                    <div className="bg-white rounded-xl border border-slate-200 p-6">
-                      <h4 className="font-semibold text-slate-900 mb-3">Your Response</h4>
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <p className="text-slate-700">{transcript}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Analysis Loading */}
-                  {isAnalyzing && (
-                    <div className="bg-white rounded-xl border border-slate-200 p-6 text-center">
-                      <div className="flex items-center justify-center space-x-2 mb-4">
-                        <Brain className="w-6 h-6 text-purple-500 animate-pulse" />
-                        <span className="text-lg font-semibold text-slate-900">Analyzing your response...</span>
-                      </div>
-                      <p className="text-slate-600">Our AI is evaluating your answer and preparing feedback</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Sidebar */}
-                <div className="space-y-6">
-                  {/* Session Progress */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                      <Activity className="w-5 h-5 text-purple-500" />
-                      <span>Session Progress</span>
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Questions</span>
-                        <span className="font-medium text-slate-900">{currentQuestionIndex + 1}/{questions.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Completed</span>
-                        <span className="font-medium text-slate-900">{responses.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Time Elapsed</span>
-                        <span className="font-medium text-slate-900">
-                          {sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 60000) : 0}min
-                        </span>
-                      </div>
-                      {selectedSavedJob && (
-                        <div className="pt-3 border-t border-slate-200">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-slate-600">Company</span>
-                            <span className="font-medium text-slate-900">{selectedSavedJob.company}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Encouragement */}
-                  {encouragementMessage && (
-                    <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border border-green-200 p-6">
-                      <h3 className="font-semibold text-slate-900 mb-3 flex items-center space-x-2">
-                        <Star className="w-5 h-5 text-green-500" />
-                        <span>Encouragement</span>
-                      </h3>
-                      <p className="text-sm text-slate-700">{encouragementMessage}</p>
-                    </div>
-                  )}
-
-                  {/* Question Tips */}
-                  {questions[currentQuestionIndex]?.keyPoints && (
-                    <div className="bg-white rounded-xl border border-slate-200 p-6">
-                      <h3 className="font-semibold text-slate-900 mb-3 flex items-center space-x-2">
-                        <Zap className="w-5 h-5 text-yellow-500" />
-                        <span>Key Points to Cover</span>
-                      </h3>
-                      <ul className="space-y-2">
-                        {questions[currentQuestionIndex].keyPoints.map((point, index) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-slate-700">{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Previous Responses */}
-                  {responses.length > 0 && (
-                    <div className="bg-white rounded-xl border border-slate-200 p-6">
-                      <h3 className="font-semibold text-slate-900 mb-3 flex items-center space-x-2">
-                        <BarChart3 className="w-5 h-5 text-blue-500" />
-                        <span>Previous Scores</span>
-                      </h3>
-                      <div className="space-y-2">
-                        {responses.map((response, index) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <span className="text-sm text-slate-600">Q{index + 1}</span>
-                            <div className="flex items-center space-x-2">
-                              <span className="font-medium text-slate-900">{response.analysis.score}%</span>
-                              <div className={`w-2 h-2 rounded-full ${
-                                response.analysis.score >= 80 ? 'bg-green-500' : 
-                                response.analysis.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                              }`} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Results Step */}
-          {currentStep === 'results' && finalAnalysis && (
-            <motion.div
-              key="results"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-6xl mx-auto"
-            >
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center space-x-3 mb-4">
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <Trophy className="w-8 h-8 text-green-600" />
-                  </div>
-                  <h2 className="text-3xl font-bold text-slate-900">Interview Complete!</h2>
-                </div>
-                <p className="text-lg text-slate-600">Here's your detailed performance analysis</p>
-              </div>
-
-              <div className="grid lg:grid-cols-3 gap-8">
-                {/* Main Results */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Overall Score */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-8">
-                    <div className="text-center mb-6">
-                      <div className="inline-flex items-center space-x-4">
-                        <div className="relative w-24 h-24">
-                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r="40"
-                              className="stroke-slate-200"
-                              strokeWidth="8"
-                              fill="none"
-                            />
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r="40"
-                              className="stroke-green-500"
-                              strokeWidth="8"
-                              fill="none"
-                              strokeDasharray={`${2 * Math.PI * 40}`}
-                              strokeDashoffset={`${2 * Math.PI * 40 * (1 - finalAnalysis.overallScore / 100)}`}
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-2xl font-bold text-slate-900">{finalAnalysis.overallScore}</span>
-                          </div>
-                        </div>
-                        <div className="text-left">
-                          <h3 className="text-2xl font-bold text-slate-900">Overall Score</h3>
-                          <p className="text-slate-600">{finalAnalysis.readinessLevel}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-slate-700 text-center">{finalAnalysis.overallFeedback}</p>
-                  </div>
-
-                  {/* Category Scores */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4">Performance Breakdown</h3>
-                    <div className="space-y-4">
-                      {Object.entries(finalAnalysis.categoryScores).map(([category, score]) => (
-                        <div key={category}>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-medium text-slate-700 capitalize">
-                              {category.replace(/([A-Z])/g, ' $1').trim()}
-                            </span>
-                            <span className="font-semibold text-slate-900">{score}%</span>
-                          </div>
-                          <div className="w-full bg-slate-200 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-1000"
-                              style={{ width: `${score}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Strengths and Improvements */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-xl border border-slate-200 p-6">
-                      <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                        <CheckCircle className="w-5 h-5 text-green-500" />
-                        <span>Strengths</span>
-                      </h3>
-                      <ul className="space-y-2">
-                        {finalAnalysis.strengths.map((strength: string, index: number) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <Star className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-slate-700">{strength}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="bg-white rounded-xl border border-slate-200 p-6">
-                      <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                        <TrendingUp className="w-5 h-5 text-blue-500" />
-                        <span>Areas for Improvement</span>
-                      </h3>
-                      <ul className="space-y-2">
-                        {finalAnalysis.areasForImprovement.map((area: string, index: number) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <Target className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-slate-700">{area}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Recommendations */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                      <BookOpen className="w-5 h-5 text-purple-500" />
-                      <span>Recommendations</span>
-                    </h3>
-                    <ul className="space-y-3">
-                      {finalAnalysis.recommendations.map((rec: string, index: number) => (
-                        <li key={index} className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg">
-                          <Zap className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-slate-700">{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Next Steps */}
-                  <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border border-green-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                      <Users className="w-5 h-5 text-green-500" />
-                      <span>Next Steps</span>
-                    </h3>
-                    <ul className="space-y-2">
-                      {finalAnalysis.nextSteps.map((step: string, index: number) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-slate-700">{step}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Sidebar */}
-                <div className="space-y-6">
-                  {/* Session Summary */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                      <BarChart3 className="w-5 h-5 text-blue-500" />
-                      <span>Session Summary</span>
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Role</span>
-                        <span className="font-medium text-slate-900">{sessionConfig.role}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Questions</span>
-                        <span className="font-medium text-slate-900">{questions.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Duration</span>
-                        <span className="font-medium text-slate-900">
-                          {Math.round((Date.now() - sessionStartTime) / 60000)}min
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-600">Type</span>
-                        <span className="font-medium text-slate-900">
-                          {sessionTypes.find(t => t.id === sessionConfig.sessionType)?.label}
-                        </span>
-                      </div>
-                      {selectedSavedJob && (
-                        <div className="pt-3 border-t border-slate-200">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-slate-600">Company</span>
-                            <span className="font-medium text-slate-900">{selectedSavedJob.company}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Individual Question Scores */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="font-semibold text-slate-900 mb-4">Question Scores</h3>
-                    <div className="space-y-3">
-                      {responses.map((response, index) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span className="text-sm text-slate-600">Question {index + 1}</span>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-slate-900">{response.analysis.score}%</span>
-                            <div className={`w-3 h-3 rounded-full ${
-                              response.analysis.score >= 80 ? 'bg-green-500' : 
-                              response.analysis.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                            }`} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="space-y-3">
-                    <button
-                      onClick={restartSession}
-                      className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      <span>Practice Again</span>
-                    </button>
-                    
-                    <Link href="/dashboard">
-                      <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Back to Dashboard</span>
-                      </button>
-                    </Link>
-
-                    {selectedSavedJob && (
-                      <Link href="/job-search?filter=saved">
-                        <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
-                          <Briefcase className="w-4 h-4" />
-                          <span>View Saved Jobs</span>
-                        </button>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
+          {currentStep === 'setup' && renderSetup()}
+          {currentStep === 'credits-check' && renderCreditsCheck()}
+          {currentStep === 'interview' && renderInterview()}
+          {currentStep === 'final' && renderFinalAnalysis()}
         </AnimatePresence>
       </div>
     </div>
