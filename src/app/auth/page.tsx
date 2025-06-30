@@ -177,27 +177,7 @@ const WelcomeScreen = ({ onGetStarted }: { onGetStarted: () => void }) => (
             </p>
         </div>
 
-        {/* Tutorial Video */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-lg">
-            <h3 className="font-semibold text-slate-900 mb-4 flex items-center justify-center space-x-2">
-                <Play className="w-5 h-5 text-green-600" />
-                <span>Watch: How JobSpark Works</span>
-            </h3>
-            <div className="relative w-full max-w-2xl mx-auto">
-                <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-lg">
-                    <iframe
-                        src="https://www.youtube.com/embed/w93FOJ3pI3U"
-                        title="JobSpark Platform Tutorial"
-                        className="absolute top-0 left-0 w-full h-full border-0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                    />
-                </div>
-            </div>
-            <p className="text-sm text-slate-600 mt-3">
-                Learn how to use JobSpark's AI-powered tools to accelerate your career
-            </p>
-        </div>
+       
 
         {/* Dashboard Preview */}
         <div className="bg-gradient-to-br from-green-50 to-yellow-50 rounded-xl p-6 border border-green-200">
@@ -418,6 +398,27 @@ const AuthPageContent = () => {
                             Starts Here
                         </span>
                     </h1>
+                   {/* Tutorial Video */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-lg">
+            <h3 className="font-semibold text-slate-900 mb-4 flex items-center justify-center space-x-2">
+                <Play className="w-5 h-5 text-green-600" />
+                <span>Watch: How JobSpark Works</span>
+            </h3>
+            <div className="relative w-full max-w-2xl mx-auto">
+                <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-lg">
+                    <iframe
+                        src="https://www.youtube.com/embed/w93FOJ3pI3U"
+                        title="JobSpark Platform Tutorial"
+                        className="absolute top-0 left-0 w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                </div>
+            </div>
+            <p className="text-sm text-slate-600 mt-3">
+                Learn how to use JobSpark's AI-powered tools to accelerate your career
+            </p>
+        </div>
                     <p className="text-lg text-slate-600 mb-10 leading-relaxed">
                         Join thousands of professionals accelerating their careers with AI-powered tools.
                     </p>
