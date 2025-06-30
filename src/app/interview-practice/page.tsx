@@ -37,14 +37,18 @@ import {
   BarChart3,
   Headphones,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Building2,
+  MapPin,
+  Bookmark,
+  Search
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useAutoInterview } from "@/hooks/useAutoInterview";
 import { useSearchParams } from "next/navigation";
-import { getUserProfile, getUserExperiences, getUserSkills, getSavedJobById } from "@/lib/database";
+import { getUserProfile, getUserExperiences, getUserSkills, getSavedJobById, getUserSavedJobs } from "@/lib/database";
 
 // Session type configurations
 const SESSION_TYPES = {
@@ -118,6 +122,8 @@ const InterviewPracticePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [savedJob, setSavedJob] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [savedJobs, setSavedJobs] = useState<any[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState(urlJobId || '');
 
   // Audio and speech state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -145,19 +151,21 @@ const InterviewPracticePage = () => {
     detectSilence
   } = useAutoInterview(3000, 20); // 3 seconds silence, 20 char minimum
 
-  // Load user data and saved job on mount
+  // Load user data and saved jobs on mount
   useEffect(() => {
     const loadUserData = async () => {
       if (!user) return;
       
       try {
-        const [profile, experiences, skills] = await Promise.all([
+        const [profile, experiences, skills, jobs] = await Promise.all([
           getUserProfile(user.id),
           getUserExperiences(user.id),
-          getUserSkills(user.id)
+          getUserSkills(user.id),
+          getUserSavedJobs(user.id)
         ]);
         
         setUserProfile({ profile, experiences, skills });
+        setSavedJobs(jobs);
         
         // Load saved job if jobId is provided
         if (urlJobId) {
@@ -166,6 +174,7 @@ const InterviewPracticePage = () => {
             setSavedJob(job);
             setRole(job.title);
             setContext(`Practicing for ${job.title} position at ${job.company}`);
+            setSelectedJobId(job.id);
           }
         }
       } catch (error) {
@@ -175,6 +184,28 @@ const InterviewPracticePage = () => {
 
     loadUserData();
   }, [user, urlJobId]);
+
+  // Handle saved job selection
+  const handleJobSelection = async (jobId: string) => {
+    setSelectedJobId(jobId);
+    
+    if (jobId) {
+      try {
+        const job = await getSavedJobById(jobId);
+        if (job) {
+          setSavedJob(job);
+          setRole(job.title);
+          setContext(`Practicing for ${job.title} position at ${job.company}. ${job.description ? job.description.substring(0, 200) + '...' : ''}`);
+        }
+      } catch (error) {
+        console.error('Error loading saved job:', error);
+      }
+    } else {
+      setSavedJob(null);
+      setRole(urlRole || '');
+      setContext('');
+    }
+  };
 
   // Cleanup audio on unmount or when ending interview
   useEffect(() => {
@@ -572,20 +603,98 @@ const InterviewPracticePage = () => {
         <p className="text-slate-600">Configure your practice session for the best experience</p>
       </div>
 
-      {savedJob && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-          <div className="flex items-center space-x-3">
-            <Briefcase className="w-5 h-5 text-blue-600" />
-            <div>
-              <h3 className="font-semibold text-blue-900">Practicing for saved job</h3>
-              <p className="text-sm text-blue-700">{savedJob.title} at {savedJob.company}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
         <div className="space-y-6">
+          {/* Saved Job Selection */}
+          {savedJobs.length > 0 && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-3">
+                Practice for a Saved Job (Optional)
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <select
+                  value={selectedJobId}
+                  onChange={(e) => handleJobSelection(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
+                >
+                  <option value="">-- Select a saved job or practice generally --</option>
+                  {savedJobs.map(job => (
+                    <option key={job.id} value={job.id}>
+                      {job.title} at {job.company}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+              </div>
+              
+              {savedJob && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Briefcase className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-blue-900">{savedJob.title}</h3>
+                      <div className="flex items-center space-x-4 text-sm text-blue-700 mt-1">
+                        <div className="flex items-center space-x-1">
+                          <Building2 className="w-4 h-4" />
+                          <span>{savedJob.company}</span>
+                        </div>
+                        {savedJob.location && (
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{savedJob.location}</span>
+                          </div>
+                        )}
+                        {savedJob.practice_count > 0 && (
+                          <div className="flex items-center space-x-1">
+                            <MessageSquare className="w-4 h-4" />
+                            <span>{savedJob.practice_count} practice{savedJob.practice_count > 1 ? 's' : ''}</span>
+                          </div>
+                        )}
+                      </div>
+                      {savedJob.description && (
+                        <p className="text-sm text-blue-600 mt-2 line-clamp-2">
+                          {savedJob.description.substring(0, 150)}...
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Bookmark className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs text-blue-600 font-medium">Saved</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-xs text-slate-500 mt-2">
+                Selecting a saved job will tailor questions to that specific role and company
+              </p>
+            </div>
+          )}
+
+          {/* Link to Job Search if no saved jobs */}
+          {savedJobs.length === 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <div className="flex items-center space-x-3">
+                <Bookmark className="w-5 h-5 text-yellow-600" />
+                <div>
+                  <h3 className="font-semibold text-yellow-800">No saved jobs yet</h3>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Save jobs from our job search to practice for specific roles and get tailored questions.
+                  </p>
+                  <Link href="/job-search">
+                    <button className="mt-2 text-sm text-yellow-800 hover:text-yellow-900 font-medium flex items-center space-x-1">
+                      <span>Browse jobs</span>
+                      <ArrowLeft className="w-3 h-3 rotate-180" />
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Session Type Selection */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">
@@ -655,7 +764,13 @@ const InterviewPracticePage = () => {
               onChange={(e) => setRole(e.target.value)}
               className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="e.g., Software Engineer, Marketing Manager"
+              disabled={!!savedJob}
             />
+            {savedJob && (
+              <p className="text-xs text-slate-500 mt-1">
+                Role automatically filled from selected job
+              </p>
+            )}
           </div>
 
           {/* Experience Years */}
@@ -679,7 +794,7 @@ const InterviewPracticePage = () => {
           {/* Context */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Additional Context (Optional)
+              Additional Context {savedJob ? '(Auto-filled from job)' : '(Optional)'}
             </label>
             <textarea
               value={context}
@@ -971,6 +1086,12 @@ const InterviewPracticePage = () => {
                   <span className="text-sm text-slate-600">Role:</span>
                   <span className="text-sm font-medium text-slate-900">{role}</span>
                 </div>
+                {savedJob && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600">Company:</span>
+                    <span className="text-sm font-medium text-slate-900">{savedJob.company}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600">Experience:</span>
                   <span className="text-sm font-medium text-slate-900">{experienceYears} years</span>
@@ -1057,6 +1178,12 @@ const InterviewPracticePage = () => {
         </div>
         <h2 className="text-3xl font-bold text-slate-900 mb-2">Interview Complete!</h2>
         <p className="text-slate-600">Here's your detailed performance analysis</p>
+        {savedJob && (
+          <div className="mt-4 inline-flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-full">
+            <Briefcase className="w-4 h-4" />
+            <span className="text-sm font-medium">Practiced for {savedJob.title} at {savedJob.company}</span>
+          </div>
+        )}
       </div>
 
       {finalAnalysis && (
