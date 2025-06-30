@@ -4,8 +4,6 @@ import { checkUserCredits, CREDIT_COSTS } from '@/lib/credits';
 
 export async function POST(request: NextRequest) {
   try {
-    const { questionCount }: { questionCount: number } = await request.json();
-
     // Get the Authorization header
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -44,10 +42,19 @@ export async function POST(request: NextRequest) {
     // Check if user has enough credits
     const hasCredits = await checkUserCredits(supabase, user.id, creditsNeeded);
 
+    // Get current balance for display
+    const { data: creditsData } = await supabase
+      .from('user_credits')
+      .select('credits_balance')
+      .eq('user_id', user.id)
+      .single();
+
+    const currentBalance = creditsData?.credits_balance || 0;
+
     return NextResponse.json({
       hasCredits,
       creditsNeeded,
-      questionCount
+      currentBalance
     });
 
   } catch (error) {

@@ -31,13 +31,14 @@ import {
   X,
   Plus,
   Loader2,
+  Minus,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useAutoInterview } from "@/hooks/useAutoInterview";
 import { CreditBalance } from "@/components/CreditBalance";
-import { CREDIT_COSTS, formatCredits } from "@/lib/credits";
+import { CREDIT_COSTS, formatCredits, hasEnoughCredits } from "@/lib/credits";
 
 interface Question {
   id: number;
@@ -84,7 +85,7 @@ const InterviewPracticePage = () => {
     questionCount: 3
   });
   
-  // Credits state
+  // Credits state with better null handling
   const [creditsBalance, setCreditsBalance] = useState<number>(0);
   const [hasEnoughCredits, setHasEnoughCredits] = useState<boolean>(false);
   const [checkingCredits, setCheckingCredits] = useState<boolean>(false);
@@ -142,14 +143,14 @@ const InterviewPracticePage = () => {
     detectSilence
   } = useAutoInterview(3000, 20); // 3 seconds silence, 20 char minimum
 
-  // Session types configuration
+  // Session types configuration - REMOVED fixed question counts
   const sessionTypes = [
-    { id: 'mock-interview', label: 'Full Mock Interview', description: 'Complete interview simulation', questions: 3 },
-    { id: 'introduction', label: 'Introduction Practice', description: 'Practice self-introduction', questions: 2 },
-    { id: 'experience', label: 'Experience Questions', description: 'Behavioral and experience-based', questions: 3 },
-    { id: 'strengths-weaknesses', label: 'Strengths & Weaknesses', description: 'Self-assessment questions', questions: 2 },
-    { id: 'salary', label: 'Salary Negotiation', description: 'Compensation discussions', questions: 2 },
-    { id: 'job-specific', label: 'Technical Questions', description: 'Role-specific competencies', questions: 3 }
+    { id: 'mock-interview', label: 'Full Mock Interview', description: 'Complete interview simulation' },
+    { id: 'introduction', label: 'Introduction Practice', description: 'Practice self-introduction' },
+    { id: 'experience', label: 'Experience Questions', description: 'Behavioral and experience-based' },
+    { id: 'strengths-weaknesses', label: 'Strengths & Weaknesses', description: 'Self-assessment questions' },
+    { id: 'salary', label: 'Salary Negotiation', description: 'Compensation discussions' },
+    { id: 'job-specific', label: 'Technical Questions', description: 'Role-specific competencies' }
   ];
 
   // Check credits when component mounts or user changes
@@ -166,12 +167,15 @@ const InterviewPracticePage = () => {
         
         if (response.ok) {
           const data = await response.json();
-          setCreditsBalance(data.balance || 0);
-          setHasEnoughCredits(data.balance >= CREDIT_COSTS.INTERVIEW_SESSION);
+          const balance = data.balance || 0;
+          setCreditsBalance(balance);
+          setHasEnoughCredits(hasEnoughCredits(balance, CREDIT_COSTS.INTERVIEW_SESSION));
         }
       } catch (error) {
         console.error('Error checking credits:', error);
         setCreditsError('Failed to check credit balance');
+        setCreditsBalance(0);
+        setHasEnoughCredits(false);
       }
     };
 
@@ -555,7 +559,22 @@ const InterviewPracticePage = () => {
     }
   };
 
-  // Render setup step
+  // Helper functions for question count selection
+  const incrementQuestions = () => {
+    setSessionConfig(prev => ({ 
+      ...prev, 
+      questionCount: Math.min(5, prev.questionCount + 1) 
+    }));
+  };
+
+  const decrementQuestions = () => {
+    setSessionConfig(prev => ({ 
+      ...prev, 
+      questionCount: Math.max(2, prev.questionCount - 1) 
+    }));
+  };
+
+  // Render setup step with question count selector
   const renderSetup = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -610,8 +629,7 @@ const InterviewPracticePage = () => {
                   key={type.id}
                   onClick={() => setSessionConfig(prev => ({ 
                     ...prev, 
-                    sessionType: type.id,
-                    questionCount: type.questions 
+                    sessionType: type.id
                   }))}
                   className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
                     sessionConfig.sessionType === type.id
@@ -620,12 +638,48 @@ const InterviewPracticePage = () => {
                   }`}
                 >
                   <h3 className="font-semibold text-slate-900 mb-1">{type.label}</h3>
-                  <p className="text-sm text-slate-600 mb-2">{type.description}</p>
-                  <span className="text-xs text-purple-600 font-medium">
-                    {type.questions} questions
-                  </span>
+                  <p className="text-sm text-slate-600">{type.description}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* NEW: Question Count Selector */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Number of Questions
+            </label>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={decrementQuestions}
+                disabled={sessionConfig.questionCount <= 2}
+                className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              
+              <div className="flex-1 text-center">
+                <div className="text-3xl font-bold text-purple-600 mb-1">
+                  {sessionConfig.questionCount}
+                </div>
+                <div className="text-sm text-slate-600">
+                  questions ({sessionConfig.questionCount * 2}-{sessionConfig.questionCount * 3} minutes)
+                </div>
+              </div>
+              
+              <button
+                onClick={incrementQuestions}
+                disabled={sessionConfig.questionCount >= 5}
+                className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="mt-3 bg-slate-50 rounded-lg p-3">
+              <p className="text-sm text-slate-600 text-center">
+                Choose between 2-5 questions. More questions = longer practice session.
+              </p>
             </div>
           </div>
 
@@ -661,7 +715,7 @@ const InterviewPracticePage = () => {
     </motion.div>
   );
 
-  // Render credits check step
+  // Render credits check step with better null handling
   const renderCreditsCheck = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -678,7 +732,7 @@ const InterviewPracticePage = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Current Balance */}
+          {/* Current Balance with null safety */}
           <div className="bg-slate-50 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-slate-600">Current Balance</span>
@@ -779,7 +833,7 @@ const InterviewPracticePage = () => {
     </motion.div>
   );
 
-  // Render interview step
+  // Render interview step (unchanged)
   const renderInterview = () => {
     const currentQuestion = questions[currentQuestionIndex];
     const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
@@ -951,6 +1005,10 @@ const InterviewPracticePage = () => {
                     {sessionTypes.find(t => t.id === sessionConfig.sessionType)?.label}
                   </p>
                 </div>
+                <div>
+                  <span className="text-sm text-slate-600">Questions</span>
+                  <p className="font-medium text-slate-900">{questions.length} questions</p>
+                </div>
               </div>
             </div>
 
@@ -1008,7 +1066,7 @@ const InterviewPracticePage = () => {
     );
   };
 
-  // Render final analysis step
+  // Render final analysis step (unchanged)
   const renderFinalAnalysis = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

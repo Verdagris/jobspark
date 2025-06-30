@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle, Shield, Zap, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle, Shield, Zap, Clock, RefreshCw, AlertCircle, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -157,11 +157,103 @@ const AnimatedBenefits = () => {
     );
 };
 
+// --- Welcome Screen Component with Tutorial Video ---
+const WelcomeScreen = ({ onGetStarted }: { onGetStarted: () => void }) => (
+    <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="text-center space-y-8"
+    >
+        <div className="space-y-4">
+            <div className="flex items-center justify-center space-x-3 mb-6">
+                <div className="p-4 bg-green-100 rounded-full">
+                    <Sparkles className="w-12 h-12 text-green-600" />
+                </div>
+            </div>
+            <h1 className="text-4xl font-bold text-slate-900">Welcome to JobSpark! 🇿🇦</h1>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                Let's build your professional profile and unlock opportunities in the South African job market
+            </p>
+        </div>
+
+        {/* Tutorial Video */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-lg">
+            <h3 className="font-semibold text-slate-900 mb-4 flex items-center justify-center space-x-2">
+                <Play className="w-5 h-5 text-green-600" />
+                <span>Watch: How JobSpark Works</span>
+            </h3>
+            <div className="relative w-full max-w-2xl mx-auto">
+                <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-lg">
+                    <iframe
+                        src="https://www.youtube.com/embed/w93FOJ3pI3U"
+                        title="JobSpark Platform Tutorial"
+                        className="absolute top-0 left-0 w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                </div>
+            </div>
+            <p className="text-sm text-slate-600 mt-3">
+                Learn how to use JobSpark's AI-powered tools to accelerate your career
+            </p>
+        </div>
+
+        {/* Dashboard Preview */}
+        <div className="bg-gradient-to-br from-green-50 to-yellow-50 rounded-xl p-6 border border-green-200">
+            <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
+                <Zap className="w-5 h-5 text-green-600" />
+                <span>What you'll get access to:</span>
+            </h3>
+            <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                    <Shield className="w-6 h-6 text-green-600" />
+                    <div>
+                        <p className="font-medium text-slate-900">AI CV Builder</p>
+                        <p className="text-sm text-slate-600">Professional CVs in minutes</p>
+                    </div>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                    <CheckCircle className="w-6 h-6 text-yellow-600" />
+                    <div>
+                        <p className="font-medium text-slate-900">Interview Practice</p>
+                        <p className="text-sm text-slate-600">AI-powered coaching</p>
+                    </div>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                    <Zap className="w-6 h-6 text-green-600" />
+                    <div>
+                        <p className="font-medium text-slate-900">Job Matching</p>
+                        
+                        <p className="text-sm text-slate-600">Find perfect opportunities</p>
+                    </div>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                    <Shield className="w-6 h-6 text-yellow-600" />
+                    <div>
+                        <p className="font-medium text-slate-900">Career Scoring</p>
+                        <p className="text-sm text-slate-600">Track your readiness</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button
+            onClick={onGetStarted}
+            className="flex items-center space-x-2 px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors mx-auto text-lg font-semibold shadow-lg"
+        >
+            <span>Let's Get Started</span>
+            <ArrowLeft className="w-5 h-5 rotate-180" />
+        </button>
+    </motion.div>
+);
+
 // --- Auth Page Content Component ---
 const AuthPageContent = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
   const [signupEmail, setSignupEmail] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -337,7 +429,9 @@ const AuthPageContent = () => {
             <div className="w-full lg:w-7/12 p-8 lg:p-12 xl:p-16 bg-white/50 flex items-center justify-center">
                 <motion.div className="w-full max-w-md" style={{ perspective: "1000px" }}>
                     <AnimatePresence mode="wait">
-                        {showEmailVerification ? (
+                        {showWelcome ? (
+                            <WelcomeScreen onGetStarted={() => setShowWelcome(false)} />
+                        ) : showEmailVerification ? (
                             <motion.div
                                 key="email-verification"
                                 initial={{ opacity: 0, scale: 0.95 }}
