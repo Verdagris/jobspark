@@ -69,13 +69,23 @@ export async function getUserCredits(
   supabase: SupabaseClient,
   userId: string
 ): Promise<UserCredits | null> {
-  const { data, error } = await supabase
-    .from("user_credits")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) console.error("Error fetching user credits:", error);
-  return data || null;
+  try {
+    const { data, error } = await supabase
+      .from("user_credits")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Error fetching user credits:", error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in getUserCredits:", error);
+    return null;
+  }
 }
 
 export async function createCreditPurchase(
@@ -84,136 +94,235 @@ export async function createCreditPurchase(
   creditsAmount: number,
   amountPaid: number
 ): Promise<CreditPurchase | null> {
-  const { data, error } = await supabase
-    .from("credit_purchases")
-    .insert({
-      user_id: userId,
-      credits_amount: creditsAmount,
-      amount_paid: amountPaid,
-      status: "pending",
-    })
-    .select()
-    .single();
-  if (error) console.error("Error creating credit purchase:", error);
-  return data || null;
+  try {
+    const { data, error } = await supabase
+      .from("credit_purchases")
+      .insert({
+        user_id: userId,
+        credits_amount: creditsAmount,
+        amount_paid: amountPaid,
+        status: "pending",
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating credit purchase:", error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in createCreditPurchase:", error);
+    return null;
+  }
 }
 
-// THIS FUNCTION IS NOW CORRECTLY EXPORTED
 export async function checkUserCredits(
   supabase: SupabaseClient,
   userId: string,
   requiredCredits: number
 ): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("user_credits")
-    .select("credits_balance")
-    .eq("user_id", userId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("user_credits")
+      .select("credits_balance")
+      .eq("user_id", userId)
+      .single();
 
-  if (error || !data) {
-    console.error("Error checking user credits:", error);
-    return false; // If user has no credit record, they don't have credits.
+    if (error || !data) {
+      console.error("Error checking user credits:", error);
+      return false;
+    }
+
+    const balance = data.credits_balance || 0;
+    return balance >= requiredCredits;
+  } catch (error) {
+    console.error("Error in checkUserCredits:", error);
+    return false;
   }
-
-  return data.credits_balance >= requiredCredits;
 }
 
-// All other functions are also included and correct...
 export async function getCreditTransactions(
   supabase: SupabaseClient,
   userId: string,
   limit: number = 50
 ): Promise<CreditTransaction[]> {
-  const { data, error } = await supabase
-    .from("credit_transactions")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) console.error("Error fetching credit transactions:", error);
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from("credit_transactions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    
+    if (error) {
+      console.error("Error fetching credit transactions:", error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in getCreditTransactions:", error);
+    return [];
+  }
 }
+
 export async function updateCreditPurchase(
   supabase: SupabaseClient,
   purchaseId: string,
   updates: Partial<CreditPurchase>
 ): Promise<CreditPurchase | null> {
-  const { data, error } = await supabase
-    .from("credit_purchases")
-    .update(updates)
-    .eq("id", purchaseId)
-    .select()
-    .single();
-  if (error) console.error("Error updating credit purchase:", error);
-  return data || null;
+  try {
+    const { data, error } = await supabase
+      .from("credit_purchases")
+      .update(updates)
+      .eq("id", purchaseId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating credit purchase:", error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in updateCreditPurchase:", error);
+    return null;
+  }
 }
+
 export async function getCreditPurchase(
   supabase: SupabaseClient,
   purchaseId: string
 ): Promise<CreditPurchase | null> {
-  const { data, error } = await supabase
-    .from("credit_purchases")
-    .select("*")
-    .eq("id", purchaseId)
-    .maybeSingle();
-  if (error) console.error("Error fetching credit purchase:", error);
-  return data || null;
+  try {
+    const { data, error } = await supabase
+      .from("credit_purchases")
+      .select("*")
+      .eq("id", purchaseId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Error fetching credit purchase:", error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in getCreditPurchase:", error);
+    return null;
+  }
 }
+
 export async function completeCreditPurchase(
   supabase: SupabaseClient,
   userId: string,
   creditsAmount: number,
   purchaseId: string
 ): Promise<boolean> {
-  const { error: rpcError } = await supabase.rpc("add_purchased_credits", {
-    p_user_id: userId,
-    p_credits_amount: creditsAmount,
-    p_purchase_id: purchaseId,
-  });
-  if (rpcError) {
-    console.error("Error in RPC add_purchased_credits:", rpcError);
-    await updateCreditPurchase(supabase, purchaseId, { status: "failed" });
+  try {
+    const { error: rpcError } = await supabase.rpc("add_purchased_credits", {
+      p_user_id: userId,
+      p_credits_amount: creditsAmount,
+      p_purchase_id: purchaseId,
+    });
+    
+    if (rpcError) {
+      console.error("Error in RPC add_purchased_credits:", rpcError);
+      await updateCreditPurchase(supabase, purchaseId, { status: "failed" });
+      return false;
+    }
+    
+    const updatedPurchase = await updateCreditPurchase(supabase, purchaseId, {
+      status: "completed",
+      completed_at: new Date().toISOString(),
+    });
+    
+    return !!updatedPurchase;
+  } catch (error) {
+    console.error("Error in completeCreditPurchase:", error);
     return false;
   }
-  const updatedPurchase = await updateCreditPurchase(supabase, purchaseId, {
-    status: "completed",
-    completed_at: new Date().toISOString(),
-  });
-  return !!updatedPurchase;
 }
+
 export async function getUserCreditBalance(
   supabase: SupabaseClient,
   userId: string
 ): Promise<number> {
-  const { data, error } = await supabase
-    .from("user_credits")
-    .select("credits_balance")
-    .eq("user_id", userId)
-    .single();
-  if (error || !data) {
-    console.error("Error fetching credit balance:", error);
+  try {
+    const { data, error } = await supabase
+      .from("user_credits")
+      .select("credits_balance")
+      .eq("user_id", userId)
+      .single();
+    
+    if (error || !data) {
+      console.error("Error fetching credit balance:", error);
+      return 0;
+    }
+    
+    return data.credits_balance || 0;
+  } catch (error) {
+    console.error("Error in getUserCreditBalance:", error);
     return 0;
   }
-  return data.credits_balance || 0;
 }
 
-// --- FORMATTING HELPERS ---
+// --- FORMATTING HELPERS WITH NULL SAFETY ---
 export function formatCredits(credits: number | null | undefined): string {
-  if (
-    credits === null ||
-    credits === undefined ||
-    typeof credits !== "number" ||
-    isNaN(credits)
-  )
+  // Handle all null/undefined cases gracefully
+  if (credits === null || credits === undefined || typeof credits !== "number" || isNaN(credits)) {
     return "0";
-  return Math.floor(credits).toLocaleString();
+  }
+  
+  // Ensure we have a valid number and format it
+  const validCredits = Math.max(0, Math.floor(credits));
+  return validCredits.toLocaleString();
 }
-export function formatPrice(cents: number): string {
-  if (typeof cents !== "number" || isNaN(cents)) return "R0.00";
-  return `R${(cents / 100).toFixed(2)}`;
+
+export function formatPrice(cents: number | null | undefined): string {
+  if (cents === null || cents === undefined || typeof cents !== "number" || isNaN(cents)) {
+    return "R0.00";
+  }
+  
+  const validCents = Math.max(0, cents);
+  return `R${(validCents / 100).toFixed(2)}`;
 }
-export function getCreditsPerRand(credits: number, cents: number): number {
-  if (typeof credits !== "number" || typeof cents !== "number" || cents === 0)
+
+export function getCreditsPerRand(credits: number | null | undefined, cents: number | null | undefined): number {
+  if (
+    credits === null || credits === undefined || typeof credits !== "number" || isNaN(credits) ||
+    cents === null || cents === undefined || typeof cents !== "number" || isNaN(cents) || cents === 0
+  ) {
     return 0;
-  return credits / (cents / 100);
+  }
+  
+  const validCredits = Math.max(0, credits);
+  const validCents = Math.max(1, cents); // Prevent division by zero
+  
+  return validCredits / (validCents / 100);
+}
+
+// --- CREDIT VALIDATION HELPERS ---
+export function hasEnoughCredits(balance: number | null | undefined, required: number): boolean {
+  const validBalance = balance || 0;
+  const validRequired = Math.max(0, required);
+  return validBalance >= validRequired;
+}
+
+export function getInterviewsAvailable(balance: number | null | undefined): number {
+  const validBalance = balance || 0;
+  return Math.floor(validBalance / CREDIT_COSTS.INTERVIEW_SESSION);
+}
+
+export function getCVsAvailable(balance: number | null | undefined): number {
+  const validBalance = balance || 0;
+  return Math.floor(validBalance / CREDIT_COSTS.CV_GENERATION);
+}
+
+export function isLowBalance(balance: number | null | undefined): boolean {
+  const validBalance = balance || 0;
+  return validBalance < CREDIT_COSTS.INTERVIEW_SESSION;
 }

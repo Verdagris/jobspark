@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Zap, Plus, AlertTriangle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { formatCredits, CREDIT_COSTS } from "@/lib/credits";
+import { formatCredits, CREDIT_COSTS, hasEnoughCredits, getInterviewsAvailable, isLowBalance } from "@/lib/credits";
 
 interface CreditBalanceProps {
   className?: string;
@@ -16,15 +16,23 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchBalance = async () => {
-    if (!user) return;
+    if (!user) {
+      setBalance(0);
+      return;
+    }
     
     try {
+      setError(null);
       const { supabase } = await import('@/lib/supabase');
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) return;
+      if (!session) {
+        setBalance(0);
+        return;
+      }
 
       const response = await fetch('/api/credits/balance', {
         headers: {
@@ -34,10 +42,16 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
       
       if (response.ok) {
         const data = await response.json();
-        setBalance(data.balance);
+        // Safely handle the balance with null checking
+        setBalance(data.balance || 0);
+      } else {
+        console.error('Failed to fetch credit balance');
+        setBalance(0);
       }
     } catch (error) {
       console.error('Error fetching credit balance:', error);
+      setError('Failed to load credits');
+      setBalance(0);
     }
   };
 
@@ -65,18 +79,19 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
     );
   }
 
+  // Use safe credit functions that handle null values
   const currentBalance = balance || 0;
-  const isLowBalance = currentBalance < CREDIT_COSTS.INTERVIEW_SESSION;
-  const canAffordInterview = currentBalance >= CREDIT_COSTS.INTERVIEW_SESSION;
-  const interviewsAvailable = Math.floor(currentBalance / CREDIT_COSTS.INTERVIEW_SESSION);
+  const lowBalance = isLowBalance(currentBalance);
+  const canAffordInterview = hasEnoughCredits(currentBalance, CREDIT_COSTS.INTERVIEW_SESSION);
+  const interviewsAvailable = getInterviewsAvailable(currentBalance);
 
   return (
     <div className={`flex items-center space-x-3 ${className}`}>
       <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-        isLowBalance ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'
+        lowBalance ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'
       }`}>
-        <Zap className={`w-4 h-4 ${isLowBalance ? 'text-red-600' : 'text-green-600'}`} />
-        <span className={`font-medium text-sm ${isLowBalance ? 'text-red-700' : 'text-green-700'}`}>
+        <Zap className={`w-4 h-4 ${lowBalance ? 'text-red-600' : 'text-green-600'}`} />
+        <span className={`font-medium text-sm ${lowBalance ? 'text-red-700' : 'text-green-700'}`}>
           {formatCredits(currentBalance)} credits
         </span>
         {!canAffordInterview && (
@@ -96,12 +111,12 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
       {showPurchaseButton && (
         <Link href="/credits">
           <button className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-            isLowBalance 
+            lowBalance 
               ? 'bg-red-600 text-white hover:bg-red-700' 
               : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
           }`}>
             <Plus className="w-3 h-3" />
-            <span>{isLowBalance ? 'Buy Credits' : 'Add Credits'}</span>
+            <span>{lowBalance ? 'Buy Credits' : 'Add Credits'}</span>
           </button>
         </Link>
       )}
@@ -109,6 +124,12 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
       {interviewsAvailable > 0 && (
         <span className="text-xs text-slate-500">
           {interviewsAvailable} interview{interviewsAvailable !== 1 ? 's' : ''} available
+        </span>
+      )}
+      
+      {error && (
+        <span className="text-xs text-red-500" title={error}>
+          ⚠️
         </span>
       )}
     </div>
