@@ -382,7 +382,9 @@ const InterviewPracticePage = () => {
 
       const data = await response.json();
       setQuestions(data.questions);
-      setCurrentStep("credits-check");
+      // NOTE: Credit system disabled for demo.
+      // setCurrentStep("credits-check");
+      startInterview(); // Go directly to the interview.
     } catch (error) {
       console.error("Error generating questions:", error);
       alert("Failed to generate questions. Please try again.");
@@ -392,8 +394,9 @@ const InterviewPracticePage = () => {
   };
 
   const startInterview = async () => {
-    const hasCredits = await checkCreditsBeforeStart();
-    if (!hasCredits) return;
+    // NOTE: Credit check disabled for demo purposes.
+    // const hasCredits = await checkCreditsBeforeStart();
+    // if (!hasCredits) return;
 
     setCurrentStep("interview");
     setInterviewStarted(false);
@@ -859,15 +862,14 @@ const InterviewPracticePage = () => {
             </div>
           </div>
 
-          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+          {/* NOTE: Credit system disabled for demo. Replaced credit cost box with a note. */}
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
             <div className="flex items-center space-x-2 mb-2">
-              <Zap className="w-5 h-5 text-purple-600" />
-              <span className="font-medium text-purple-900">Credit Cost</span>
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="font-medium text-green-900">Demo Mode</span>
             </div>
-            <p className="text-purple-800 text-sm">
-              This interview session will cost{" "}
-              <strong>{CREDIT_COSTS.INTERVIEW_SESSION} credits</strong>{" "}
-              regardless of the number of questions.
+            <p className="text-green-800 text-sm">
+              Note: The credit system has been removed for demo purposes.
             </p>
           </div>
 
@@ -1532,7 +1534,8 @@ const InterviewPracticePage = () => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <CreditBalance />
+              {/* NOTE: Credit system disabled for demo. */}
+              {/* <CreditBalance /> */}
 
               {currentStep === "interview" && (
                 <button

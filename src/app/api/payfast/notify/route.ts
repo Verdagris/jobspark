@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Get the data from PayFast's request
     const formData = await request.formData();
+    // Create a plain object for verification and logging
     const notificationData = Object.fromEntries(
       formData.entries()
     ) as unknown as PayFastNotification;
@@ -39,7 +40,18 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY! // Use the Service Role Key for admin actions
     );
 
-    const purchaseId = notificationData.m_payment_id;
+    // FIX: Safely get the purchase ID directly from the form data.
+    // This is more reliable than accessing it through a casted object.
+    const purchaseId = formData.get("m_payment_id") as string | null;
+
+    // Add a check to ensure the payment ID exists.
+    if (!purchaseId) {
+      console.error("❌ `m_payment_id` not found in PayFast notification.");
+      return NextResponse.json(
+        { error: "Missing m_payment_id" },
+        { status: 400 }
+      );
+    }
 
     // 3. Get the original purchase from your database
     const purchase = await getCreditPurchase(supabaseAdmin, purchaseId);
