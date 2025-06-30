@@ -67,14 +67,57 @@ const CreditsPage = () => {
       console.log('🚀 Starting purchase for package:', packageId);
       console.log('👤 User:', user.email);
       
-      // Get fresh session token
-      const { data: { session }, error: sessionError } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+      // Get fresh session token with multiple attempts
+      let session = null;
+      let sessionError = null;
       
-      if (sessionError || !session) {
-        throw new Error('Authentication session expired. Please refresh the page and try again.');
+      // Try to get session multiple times
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`🔄 Session attempt ${attempt}/3`);
+        
+        try {
+          const { data: { session: currentSession }, error: currentError } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+          
+          if (currentSession && !currentError) {
+            session = currentSession;
+            console.log('✅ Session obtained on attempt', attempt);
+            break;
+          } else {
+            sessionError = currentError;
+            console.log(`❌ Session attempt ${attempt} failed:`, currentError);
+            
+            // If not the last attempt, wait a bit and try again
+            if (attempt < 3) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        } catch (error) {
+          console.log(`❌ Session attempt ${attempt} exception:`, error);
+          sessionError = error;
+        }
       }
 
-      console.log('🔑 Session token obtained');
+      // If we still don't have a session, try to refresh
+      if (!session) {
+        console.log('🔄 Attempting to refresh session...');
+        try {
+          const { data: { session: refreshedSession }, error: refreshError } = await (await import('@/lib/supabase')).supabase.auth.refreshSession();
+          if (refreshedSession && !refreshError) {
+            session = refreshedSession;
+            console.log('✅ Session refreshed successfully');
+          } else {
+            console.log('❌ Session refresh failed:', refreshError);
+          }
+        } catch (error) {
+          console.log('❌ Session refresh exception:', error);
+        }
+      }
+
+      if (!session) {
+        throw new Error('Authentication session expired. Please refresh the page and sign in again.');
+      }
+
+      console.log('🔑 Session token obtained, user:', session.user.email);
 
       const requestBody = {
         packageId,
@@ -109,6 +152,12 @@ const CreditsPage = () => {
 
       if (!response.ok) {
         console.error('❌ API error response:', data);
+        
+        // Handle specific authentication errors
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please refresh the page and sign in again.');
+        }
+        
         throw new Error(data.error || `Server error: ${response.status}`);
       }
 
@@ -172,6 +221,46 @@ const CreditsPage = () => {
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 border-4 border-green-600/30 border-t-green-600 rounded-full animate-spin"></div>
           <span className="text-slate-600 font-medium">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show sign-in message if user is not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl border border-slate-200 p-8 text-center shadow-lg"
+          >
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-red-600" />
+            </div>
+            
+            <h1 className="text-2xl font-bold text-slate-900 mb-4">
+              Sign In Required
+            </h1>
+            
+            <p className="text-slate-600 mb-6">
+              Please sign in to your account to purchase credits and manage your subscription.
+            </p>
+            
+            <div className="space-y-3">
+              <Link href="/auth">
+                <button className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                  Sign In
+                </button>
+              </Link>
+              <Link href="/dashboard">
+                <button className="w-full border border-slate-200 text-slate-600 py-3 rounded-lg font-semibold hover:bg-slate-50 transition-colors">
+                  Back to Dashboard
+                </button>
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </div>
     );

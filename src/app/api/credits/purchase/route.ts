@@ -24,31 +24,79 @@ export async function POST(request: NextRequest) {
 
     console.log('📦 Request data:', { packageId, userEmail, userName });
 
-    // Get user from Authorization header
+    // Try multiple authentication methods
+    let user = null;
+    let authError = null;
+
+    // Method 1: Try Authorization header
     const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('❌ No authorization header found');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      console.log('🔑 Trying Authorization header token, length:', token.length);
+      
+      try {
+        const { data: { user: headerUser }, error: headerError } = await supabase.auth.getUser(token);
+        if (headerUser && !headerError) {
+          user = headerUser;
+          console.log('✅ Authentication successful via header:', user.email);
+        } else {
+          console.log('❌ Header auth failed:', headerError);
+          authError = headerError;
+        }
+      } catch (error) {
+        console.log('❌ Header auth exception:', error);
+      }
+    }
+
+    // Method 2: Try session-based auth if header failed
+    if (!user) {
+      console.log('🔄 Trying session-based authentication...');
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (session?.user && !sessionError) {
+          user = session.user;
+          console.log('✅ Authentication successful via session:', user.email);
+        } else {
+          console.log('❌ Session auth failed:', sessionError);
+          authError = sessionError;
+        }
+      } catch (error) {
+        console.log('❌ Session auth exception:', error);
+      }
+    }
+
+    // Method 3: Try to get user by email as fallback
+    if (!user && userEmail) {
+      console.log('🔄 Trying email-based user lookup...');
+      try {
+        const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+        if (users && !usersError) {
+          const foundUser = users.find(u => u.email === userEmail);
+          if (foundUser) {
+            user = foundUser;
+            console.log('✅ User found via email lookup:', user.email);
+          }
+        }
+      } catch (error) {
+        console.log('❌ Email lookup failed:', error);
+      }
+    }
+
+    // If all authentication methods failed
+    if (!user) {
+      console.error('❌ All authentication methods failed');
+      console.error('Auth error details:', authError);
       return NextResponse.json(
-        { error: 'Authentication required. Please sign in and try again.' },
+        { 
+          error: 'Please sign in to purchase credits',
+          details: 'Authentication failed. Please refresh the page and try again.',
+          authError: authError?.message || 'Unknown authentication error'
+        },
         { status: 401 }
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    console.log('🔑 Token extracted, length:', token.length);
-
-    // Verify the token with Supabase
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error('❌ Authentication failed:', authError);
-      return NextResponse.json(
-        { error: 'Invalid authentication. Please refresh the page and try again.' },
-        { status: 401 }
-      );
-    }
-
-    console.log('✅ User authenticated:', user.email);
+    console.log('✅ User authenticated successfully:', user.email);
 
     // Find the selected package
     const selectedPackage = CREDIT_PACKAGES.find(pkg => pkg.id === packageId);
@@ -102,7 +150,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('💥 Error in purchase API:', error);
     return NextResponse.json(
-      { error: 'Failed to initiate payment. Please try again.' },
+      { 
+        error: 'Failed to initiate payment. Please try again.',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

@@ -4,10 +4,36 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user from session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session?.user) {
+    // Try multiple authentication methods
+    let user = null;
+
+    // Method 1: Try Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      try {
+        const { data: { user: headerUser }, error: headerError } = await supabase.auth.getUser(token);
+        if (headerUser && !headerError) {
+          user = headerUser;
+        }
+      } catch (error) {
+        console.log('Header auth failed:', error);
+      }
+    }
+
+    // Method 2: Try session-based auth if header failed
+    if (!user) {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (session?.user && !sessionError) {
+          user = session.user;
+        }
+      } catch (error) {
+        console.log('Session auth failed:', error);
+      }
+    }
+
+    if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -15,8 +41,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's credit balance
-    const balance = await getUserCreditBalance(session.user.id);
-    const credits = await getUserCredits(session.user.id);
+    const balance = await getUserCreditBalance(user.id);
+    const credits = await getUserCredits(user.id);
 
     return NextResponse.json({
       balance,
