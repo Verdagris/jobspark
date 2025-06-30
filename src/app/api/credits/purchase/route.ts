@@ -1,152 +1,115 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createPayFastClient, validatePayFastConfig } from '@/lib/payfast';
-import { createCreditPurchase, CREDIT_PACKAGES } from '@/lib/credits';
-import { createServerComponentClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { createPayFastClient, validatePayFastConfig } from "@/lib/payfast";
+import { createCreditPurchase, CREDIT_PACKAGES } from "@/lib/credits";
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 Purchase API called');
+    console.log("🚀 Purchase API called");
 
-    // Validate PayFast configuration first
-    if (!validatePayFastConfig()) {
-      console.error('❌ PayFast configuration is incomplete');
+    // 1. Get the Authorization header. This is our single source of truth for auth.
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("❌ Auth header missing or invalid");
       return NextResponse.json(
-        { error: 'Payment system is not configured. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
-    const { packageId, userEmail, userName }: {
-      packageId: string;
-      userEmail: string;
-      userName: string;
-    } = await request.json();
-
-    console.log('📦 Request data:', { packageId, userEmail, userName });
-
-    // Create Supabase client with cookies for server-side auth
-    const cookieStore = cookies();
-    const supabase = createServerComponentClient({ cookies: () => cookieStore });
-
-    // Try to get the current user session
-    let user = null;
-    let authError = null;
-
-    try {
-      const { data: { user: sessionUser }, error: sessionError } = await supabase.auth.getUser();
-      
-      if (sessionUser && !sessionError) {
-        user = sessionUser;
-        console.log('✅ Authentication successful via server session:', user.email);
-      } else {
-        console.log('❌ Server session auth failed:', sessionError);
-        authError = sessionError;
-      }
-    } catch (error) {
-      console.log('❌ Server session auth exception:', error);
-      authError = error;
-    }
-
-    // If server-side auth failed, try the Authorization header
-    if (!user) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '');
-        console.log('🔑 Trying Authorization header token');
-        
-        try {
-          // Import supabase client directly for token verification
-          const { supabase: directClient } = await import('@/lib/supabase');
-          const { data: { user: headerUser }, error: headerError } = await directClient.auth.getUser(token);
-          
-          if (headerUser && !headerError) {
-            user = headerUser;
-            console.log('✅ Authentication successful via header:', user.email);
-          } else {
-            console.log('❌ Header auth failed:', headerError);
-            authError = headerError;
-          }
-        } catch (error) {
-          console.log('❌ Header auth exception:', error);
-          authError = error;
-        }
-      }
-    }
-
-    // If all authentication methods failed
-    if (!user) {
-      console.error('❌ All authentication methods failed');
-      console.error('Auth error details:', authError);
-      return NextResponse.json(
-        { 
-          error: 'Please sign in to purchase credits',
-          details: 'Authentication failed. Please refresh the page and try signing in again.',
-          authError: authError?.message || 'Unknown authentication error'
-        },
+        { error: "Authentication required." },
         { status: 401 }
       );
     }
 
-    console.log('✅ User authenticated successfully:', user.email);
+    // 2. Create a Supabase client that is AUTHENTICATED for its entire lifetime.
+    // It will automatically use the user's token for every database request.
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    );
 
-    // Find the selected package
-    const selectedPackage = CREDIT_PACKAGES.find(pkg => pkg.id === packageId);
-    if (!selectedPackage) {
-      console.error('❌ Invalid package:', packageId);
+    // 3. Get the user. If this fails, the token is bad.
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("❌ User authentication failed with token:", userError);
       return NextResponse.json(
-        { error: 'Invalid package selected' },
+        { error: "Invalid authentication token." },
+        { status: 401 }
+      );
+    }
+
+    console.log("✅ User authenticated successfully via header:", user.email);
+
+    // 4. Proceed with the purchase logic
+    if (!validatePayFastConfig()) {
+      console.error("❌ PayFast configuration is incomplete");
+      return NextResponse.json(
+        { error: "Payment system is not configured." },
+        { status: 500 }
+      );
+    }
+
+    const { packageId }: { packageId: string } = await request.json();
+    const selectedPackage = CREDIT_PACKAGES.find((pkg) => pkg.id === packageId);
+
+    if (!selectedPackage) {
+      console.error("❌ Invalid package:", packageId);
+      return NextResponse.json(
+        { error: "Invalid package selected" },
         { status: 400 }
       );
     }
 
-    console.log('📦 Package found:', selectedPackage);
+    console.log("📦 Package found:", selectedPackage);
 
-    // Create credit purchase record
+    // 5. Call the database function WITH THE AUTHENTICATED CLIENT.
+    // This will now pass the RLS check.
     const purchase = await createCreditPurchase(
+      supabase, // Pass the authenticated client
       user.id,
       selectedPackage.credits,
       selectedPackage.price
     );
 
     if (!purchase) {
-      console.error('❌ Failed to create purchase record');
+      console.error(
+        "❌ Failed to create purchase record. The RLS policy might still be an issue if this fails."
+      );
       return NextResponse.json(
-        { error: 'Failed to create purchase record' },
+        { error: "Failed to create purchase record in the database." },
         { status: 500 }
       );
     }
 
-    console.log('✅ Purchase record created:', purchase.id);
+    console.log("✅ Purchase record created:", purchase.id);
 
-    // Create PayFast client and payment data
+    // 6. Create and return the PayFast form
     const payfast = createPayFastClient();
     const paymentData = payfast.createPaymentData(
       purchase.id,
-      userEmail || user.email || '',
-      userName || user.user_metadata?.full_name || 'User',
+      user.email!,
+      user.user_metadata?.full_name || "User",
       selectedPackage.credits,
       selectedPackage.price
     );
 
-    console.log('💳 PayFast payment data created');
-    console.log('🔗 Payment URL:', payfast.getPaymentUrl());
-
-    // Return the payment form HTML instead of JSON for direct redirect
     const paymentForm = payfast.createPaymentForm(paymentData);
-
     return new NextResponse(paymentForm, {
-      headers: {
-        'Content-Type': 'text/html',
-      },
+      headers: { "Content-Type": "text/html" },
     });
-
   } catch (error) {
-    console.error('💥 Error in purchase API:', error);
+    console.error("💥 Unhandled error in purchase API:", error);
     return NextResponse.json(
-      { 
-        error: 'Failed to initiate payment. Please try again.',
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        error: "Failed to initiate payment. Please try again.",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

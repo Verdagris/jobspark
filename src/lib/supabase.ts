@@ -1,10 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+  throw new Error("Missing Supabase environment variables");
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -12,40 +12,41 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce'
-  }
-})
+    flowType: "pkce",
+  },
+});
 
 // Configure site URL for production
-const siteUrl = process.env.NODE_ENV === 'production' 
-  ? 'https://jobspark.co.za' 
-  : 'http://localhost:3000';
+const siteUrl =
+  process.env.NODE_ENV === "production"
+    ? "https://app.jobspark.co.za"
+    : "http://localhost:3000";
 
 // Update auth configuration for production
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' && session) {
+    if (event === "SIGNED_IN" && session) {
       // Handle successful sign in
-      console.log('User signed in successfully');
+      console.log("User signed in successfully");
     }
   });
 }
 
 export type AuthError = {
-  message: string
-}
+  message: string;
+};
 
 export type User = {
-  id: string
-  email: string
+  id: string;
+  email: string;
   user_metadata?: {
-    full_name?: string
-    avatar_url?: string
-    provider?: string
-  }
-}
+    full_name?: string;
+    avatar_url?: string;
+    provider?: string;
+  };
+};
 
 // Helper function to get the correct redirect URL
-export const getRedirectUrl = (path: string = '/auth/callback') => {
+export const getRedirectUrl = (path: string = "/auth/callback") => {
   return `${siteUrl}${path}`;
 };

@@ -1,79 +1,101 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createPayFastClient } from '@/lib/payfast';
-import { completeCreditPurchase, getCreditPurchase, updateCreditPurchase } from '@/lib/credits';
+// In src/app/api/payfast/notify/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { createPayFastClient, PayFastNotification } from "@/lib/payfast";
+import {
+  completeCreditPurchase,
+  getCreditPurchase,
+  updateCreditPurchase,
+} from "@/lib/credits";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: NextRequest) {
+  console.log("🔔 PayFast Notify URL hit");
+
   try {
-    // Parse the form data from PayFast
+    // 1. Get the data from PayFast's request
     const formData = await request.formData();
-    const notification: any = {};
-    
-    for (const [key, value] of formData.entries()) {
-      notification[key] = value.toString();
-    }
+    const notificationData = Object.fromEntries(
+      formData.entries()
+    ) as unknown as PayFastNotification;
 
-    console.log('PayFast notification received:', notification);
+    console.log("Received notification data:", notificationData);
 
-    // Verify the notification signature
+    // 2. Verify the notification to ensure it's a legitimate request from PayFast
     const payfast = createPayFastClient();
-    const isValid = payfast.verifyNotification(notification);
+    const isSignatureValid = payfast.verifyNotification(notificationData);
 
-    if (!isValid) {
-      console.error('Invalid PayFast notification signature');
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 400 }
-      );
+    if (!isSignatureValid) {
+      console.error("❌ Invalid PayFast signature. Ignoring request.");
+      // Respond with a 400 Bad Request, but don't give away too much information.
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
-    // Get purchase details
-    const purchaseId = notification.custom_str1;
-    const creditsAmount = parseInt(notification.custom_str2);
-    
-    if (!purchaseId || !creditsAmount) {
-      console.error('Missing purchase details in notification');
-      return NextResponse.json(
-        { error: 'Missing purchase details' },
-        { status: 400 }
-      );
-    }
+    console.log("✅ PayFast signature is valid.");
 
-    const purchase = await getCreditPurchase(purchaseId);
+    // Create a Supabase admin client to perform database operations securely
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY! // Use the Service Role Key for admin actions
+    );
+
+    const purchaseId = notificationData.m_payment_id;
+
+    // 3. Get the original purchase from your database
+    const purchase = await getCreditPurchase(supabaseAdmin, purchaseId);
+
     if (!purchase) {
-      console.error('Purchase not found:', purchaseId);
+      console.error(`❌ Purchase with ID ${purchaseId} not found.`);
       return NextResponse.json(
-        { error: 'Purchase not found' },
+        { error: "Purchase not found" },
         { status: 404 }
       );
     }
 
-    // Update purchase with PayFast details
-    await updateCreditPurchase(purchaseId, {
-      payfast_payment_id: notification.pf_payment_id,
-      status: notification.payment_status === 'COMPLETE' ? 'completed' : 'failed'
-    });
+    // 4. Check if the purchase is already completed to prevent double-processing
+    if (purchase.status === "completed") {
+      console.log(`✅ Purchase ${purchaseId} already completed.`);
+      return NextResponse.json({ status: "ok" });
+    }
 
-    // If payment is complete, add credits to user account
-    if (notification.payment_status === 'COMPLETE') {
+    // 5. Check if the payment status from PayFast is 'COMPLETE'
+    if (notificationData.payment_status === "COMPLETE") {
+      console.log(`Processing completed payment for purchase ${purchaseId}...`);
+
+      // Finalize the purchase: add credits and update status
       const success = await completeCreditPurchase(
+        supabaseAdmin,
         purchase.user_id,
-        creditsAmount,
-        purchaseId
+        purchase.credits_amount,
+        purchase.id
       );
 
       if (success) {
-        console.log(`Successfully added ${creditsAmount} credits to user ${purchase.user_id}`);
+        console.log(
+          `✅ Successfully completed purchase ${purchaseId}. Credits added.`
+        );
       } else {
-        console.error('Failed to add credits to user account');
+        console.error(
+          `❌ Failed to complete purchase ${purchaseId} in database.`
+        );
       }
+    } else {
+      // Handle other statuses like FAILED or CANCELLED
+      console.log(
+        `Payment status for ${purchaseId} is '${notificationData.payment_status}'. Updating record.`
+      );
+      await updateCreditPurchase(supabaseAdmin, purchaseId, {
+        status: notificationData.payment_status.toLowerCase() as any,
+      });
     }
 
-    return NextResponse.json({ success: true });
-
+    // 6. Respond to PayFast with a 200 OK to acknowledge receipt.
+    // If you don't do this, PayFast will keep trying to send the notification.
+    return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
-    console.error('Error processing PayFast notification:', error);
+    console.error("💥 Error in PayFast notify handler:", error);
     return NextResponse.json(
-      { error: 'Failed to process notification' },
+      { error: "An internal error occurred." },
       { status: 500 }
     );
   }
