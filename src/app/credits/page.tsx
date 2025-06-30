@@ -14,11 +14,13 @@ import {
   Clock,
   Users,
   Award,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { getUserCredits, getCreditTransactions, CREDIT_PACKAGES, formatCredits, formatPrice, getCreditsPerRand } from "@/lib/credits";
+import { getUserCredits, getCreditTransactions, CREDIT_PACKAGES, CREDIT_COSTS, formatCredits, formatPrice, getCreditsPerRand } from "@/lib/credits";
 
 const CreditsPage = () => {
   const { user } = useAuth();
@@ -109,6 +111,10 @@ const CreditsPage = () => {
     );
   }
 
+  const currentBalance = credits?.credits_balance || 0;
+  const interviewsAvailable = Math.floor(currentBalance / CREDIT_COSTS.INTERVIEW_SESSION);
+  const cvsAvailable = Math.floor(currentBalance / CREDIT_COSTS.CV_GENERATION);
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -159,20 +165,28 @@ const CreditsPage = () => {
               <div className="flex items-center space-x-2">
                 <Zap className="w-8 h-8" />
                 <span className="text-4xl font-bold">
-                  {credits ? formatCredits(credits.credits_balance) : '0'}
+                  {formatCredits(currentBalance)}
                 </span>
                 <span className="text-xl opacity-80">credits</span>
               </div>
               <p className="mt-2 opacity-90">
-                Each interview practice session costs 30 credits
+                Interview practice: {CREDIT_COSTS.INTERVIEW_SESSION} credits • CV generation: {CREDIT_COSTS.CV_GENERATION} credits
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right space-y-4">
               <div className="bg-white/20 rounded-lg p-4">
-                <p className="text-sm opacity-80">Sessions Available</p>
-                <p className="text-2xl font-bold">
-                  {credits ? Math.floor(credits.credits_balance / 30) : 0}
-                </p>
+                <div className="flex items-center space-x-2 mb-2">
+                  <MessageSquare className="w-5 h-5" />
+                  <p className="text-sm opacity-80">Interviews Available</p>
+                </div>
+                <p className="text-2xl font-bold">{interviewsAvailable}</p>
+              </div>
+              <div className="bg-white/20 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <FileText className="w-5 h-5" />
+                  <p className="text-sm opacity-80">CVs Available</p>
+                </div>
+                <p className="text-2xl font-bold">{cvsAvailable}</p>
               </div>
             </div>
           </div>
@@ -230,7 +244,11 @@ const CreditsPage = () => {
                   <div className="space-y-2 mb-6">
                     <div className="flex items-center space-x-2 text-sm text-slate-600">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span>{Math.floor(pkg.credits / 30)} interview sessions</span>
+                      <span>{Math.floor(pkg.credits / CREDIT_COSTS.INTERVIEW_SESSION)} interview sessions</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm text-slate-600">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span>{Math.floor(pkg.credits / CREDIT_COSTS.CV_GENERATION)} CV generations</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-slate-600">
                       <Check className="w-4 h-4 text-green-500" />

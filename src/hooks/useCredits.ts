@@ -45,12 +45,21 @@ export const useCredits = () => {
     return await checkUserCredits(user.id, CREDIT_COSTS.INTERVIEW_SESSION);
   };
 
+  const canAffordCV = async (): Promise<boolean> => {
+    if (!user) return false;
+    return await checkUserCredits(user.id, CREDIT_COSTS.CV_GENERATION);
+  };
+
   const hasEnoughCredits = (requiredCredits: number): boolean => {
     return balance >= requiredCredits;
   };
 
-  const getSessionsAvailable = (): number => {
+  const getInterviewsAvailable = (): number => {
     return Math.floor(balance / CREDIT_COSTS.INTERVIEW_SESSION);
+  };
+
+  const getCVsAvailable = (): number => {
+    return Math.floor(balance / CREDIT_COSTS.CV_GENERATION);
   };
 
   return {
@@ -59,8 +68,10 @@ export const useCredits = () => {
     loading,
     refreshCredits,
     canAffordInterview,
+    canAffordCV,
     hasEnoughCredits,
-    getSessionsAvailable,
+    getInterviewsAvailable,
+    getCVsAvailable,
     CREDIT_COSTS
   };
 };

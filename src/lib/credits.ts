@@ -33,32 +33,32 @@ export interface CreditPurchase {
   completed_at: string | null;
 }
 
-// Credit costs
+// Credit costs - Updated per requirements
 export const CREDIT_COSTS = {
-  INTERVIEW_SESSION: 30,
-  CV_GENERATION: 10, // Optional: charge for CV generation too
+  INTERVIEW_SESSION: 30, // 30 credits per interview
+  CV_GENERATION: 15, // 15 credits per CV generation
 } as const;
 
-// Credit packages
+// Credit packages - Updated with new pricing
 export const CREDIT_PACKAGES = [
   {
     id: 'package_150',
     credits: 150,
-    price: 1000, // R10.00 in cents
+    price: 1500, // R15.00 in cents
     popular: false,
     description: 'Perfect for occasional practice'
   },
   {
-    id: 'package_300',
-    credits: 300,
-    price: 2000, // R20.00 in cents (slight discount)
+    id: 'package_500',
+    credits: 500,
+    price: 5000, // R50.00 in cents
     popular: true,
     description: 'Great value for regular users'
   },
   {
-    id: 'package_750',
-    credits: 750,
-    price: 4500, // R45.00 in cents (better discount)
+    id: 'package_1000',
+    credits: 1000,
+    price: 10000, // R100.00 in cents
     popular: false,
     description: 'Best value for power users'
   }
@@ -256,8 +256,11 @@ export async function getCreditPurchase(purchaseId: string): Promise<CreditPurch
   }
 }
 
-// Format credits for display
-export function formatCredits(credits: number): string {
+// Format credits for display - Fixed the undefined error
+export function formatCredits(credits: number | null | undefined): string {
+  if (credits === null || credits === undefined) {
+    return '0';
+  }
   return credits.toLocaleString();
 }
 

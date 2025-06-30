@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Zap, Plus } from "lucide-react";
+import { Zap, Plus, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { formatCredits } from "@/lib/credits";
+import { formatCredits, CREDIT_COSTS } from "@/lib/credits";
 
 interface CreditBalanceProps {
   className?: string;
@@ -43,7 +43,10 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
     );
   }
 
-  const isLowBalance = balance !== null && balance < 30;
+  const currentBalance = balance || 0;
+  const isLowBalance = currentBalance < CREDIT_COSTS.INTERVIEW_SESSION;
+  const canAffordInterview = currentBalance >= CREDIT_COSTS.INTERVIEW_SESSION;
+  const interviewsAvailable = Math.floor(currentBalance / CREDIT_COSTS.INTERVIEW_SESSION);
 
   return (
     <div className={`flex items-center space-x-3 ${className}`}>
@@ -52,8 +55,11 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
       }`}>
         <Zap className={`w-4 h-4 ${isLowBalance ? 'text-red-600' : 'text-green-600'}`} />
         <span className={`font-medium text-sm ${isLowBalance ? 'text-red-700' : 'text-green-700'}`}>
-          {balance !== null ? formatCredits(balance) : '0'} credits
+          {formatCredits(currentBalance)} credits
         </span>
+        {!canAffordInterview && (
+          <AlertTriangle className="w-4 h-4 text-red-600" />
+        )}
       </div>
       
       {showPurchaseButton && (
@@ -67,6 +73,12 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
             <span>{isLowBalance ? 'Buy Credits' : 'Add Credits'}</span>
           </button>
         </Link>
+      )}
+      
+      {interviewsAvailable > 0 && (
+        <span className="text-xs text-slate-500">
+          {interviewsAvailable} interview{interviewsAvailable !== 1 ? 's' : ''} available
+        </span>
       )}
     </div>
   );
