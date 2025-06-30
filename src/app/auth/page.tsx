@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle, Shield, Zap, Clock, RefreshCw, AlertCircle, Play } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle, Shield, Zap, Clock, AlertCircle, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useAuth } from "@/hooks/useAuth";
 
-// --- Email Verification Success Component ---
+// Email Verification Success Component
 const EmailVerificationSuccess = ({ email, onBackToLogin }: { email: string; onBackToLogin: () => void }) => {
     return (
         <motion.div
@@ -62,7 +62,7 @@ const EmailVerificationSuccess = ({ email, onBackToLogin }: { email: string; onB
     );
 };
 
-// --- Custom Floating Label Input ---
+// Custom Floating Label Input
 const FloatingLabelInput = ({ id, label, icon: Icon, error, ...props }: any) => {
     const [isFocused, setIsFocused] = useState(false);
     const [hasValue, setHasValue] = useState(false);
@@ -117,7 +117,7 @@ const FloatingLabelInput = ({ id, label, icon: Icon, error, ...props }: any) => 
     );
 };
 
-// --- Animated Benefits Showcase ---
+// Animated Benefits Showcase
 const benefits = [
     { icon: Zap, text: "AI-powered CV generation" },
     { icon: Shield, text: "Secure profile management" },
@@ -157,78 +157,76 @@ const AnimatedBenefits = () => {
     );
 };
 
-// --- Welcome Screen Component with Tutorial Video ---
+// Welcome Screen Component with Tutorial Video
 const WelcomeScreen = ({ onGetStarted }: { onGetStarted: () => void }) => (
     <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="text-center space-y-8"
+        className="text-center space-y-6"
     >
         <div className="space-y-4">
-            <div className="flex items-center justify-center space-x-3 mb-6">
+            <div className="flex items-center justify-center space-x-3 mb-4">
                 <div className="p-4 bg-green-100 rounded-full">
                     <Sparkles className="w-12 h-12 text-green-600" />
                 </div>
             </div>
-            <h1 className="text-4xl font-bold text-slate-900">Welcome to JobSpark! 🇿🇦</h1>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+            <h1 className="text-3xl font-bold text-slate-900">Welcome to JobSpark! 🇿🇦</h1>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
                 Let's build your professional profile and unlock opportunities in the South African job market
             </p>
         </div>
 
-       
-
-        {/* Dashboard Preview */}
-        <div className="bg-gradient-to-br from-green-50 to-yellow-50 rounded-xl p-6 border border-green-200">
-            <h3 className="font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                <Zap className="w-5 h-5 text-green-600" />
-                <span>What you'll get access to:</span>
+        {/* Tutorial Video */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-md">
+            <h3 className="font-semibold text-slate-900 mb-3 flex items-center justify-center space-x-2">
+                <Play className="w-5 h-5 text-green-600" />
+                <span>How JobSpark Works</span>
             </h3>
-            <div className="grid md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
-                    <Shield className="w-6 h-6 text-green-600" />
-                    <div>
-                        <p className="font-medium text-slate-900">AI CV Builder</p>
-                        <p className="text-sm text-slate-600">Professional CVs in minutes</p>
-                    </div>
+            <div className="relative w-full max-w-md mx-auto">
+                <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-lg">
+                    <iframe
+                        src="https://www.youtube.com/embed/w93FOJ3pI3U"
+                        title="JobSpark Platform Tutorial"
+                        className="absolute top-0 left-0 w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
                 </div>
-                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
-                    <CheckCircle className="w-6 h-6 text-yellow-600" />
-                    <div>
-                        <p className="font-medium text-slate-900">Interview Practice</p>
-                        <p className="text-sm text-slate-600">AI-powered coaching</p>
-                    </div>
-                </div>
-                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
-                    <Zap className="w-6 h-6 text-green-600" />
-                    <div>
-                        <p className="font-medium text-slate-900">Job Matching</p>
-                        
-                        <p className="text-sm text-slate-600">Find perfect opportunities</p>
-                    </div>
-                </div>
-                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
-                    <Shield className="w-6 h-6 text-yellow-600" />
-                    <div>
-                        <p className="font-medium text-slate-900">Career Scoring</p>
-                        <p className="text-sm text-slate-600">Track your readiness</p>
-                    </div>
-                </div>
+            </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center space-x-2 p-3 bg-white/60 rounded-lg border border-slate-200">
+                <Zap className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium">AI CV Builder</span>
+            </div>
+            <div className="flex items-center space-x-2 p-3 bg-white/60 rounded-lg border border-slate-200">
+                <Shield className="w-5 h-5 text-yellow-600" />
+                <span className="text-sm font-medium">Interview Practice</span>
+            </div>
+            <div className="flex items-center space-x-2 p-3 bg-white/60 rounded-lg border border-slate-200">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium">Job Matching</span>
+            </div>
+            <div className="flex items-center space-x-2 p-3 bg-white/60 rounded-lg border border-slate-200">
+                <Zap className="w-5 h-5 text-yellow-600" />
+                <span className="text-sm font-medium">Career Scoring</span>
             </div>
         </div>
 
         <button
             onClick={onGetStarted}
-            className="flex items-center space-x-2 px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors mx-auto text-lg font-semibold shadow-lg"
+            className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors mx-auto font-semibold shadow-md"
         >
-            <span>Let's Get Started</span>
-            <ArrowLeft className="w-5 h-5 rotate-180" />
+            <span>Get Started</span>
+            <ArrowRight className="w-5 h-5" />
         </button>
     </motion.div>
 );
 
-// --- Auth Page Content Component ---
+// Auth Page Content Component
 const AuthPageContent = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -375,63 +373,35 @@ const AuthPageContent = () => {
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-50" />
       <div className="absolute inset-[-200%] -z-10 animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,_#16a34a_0%,_#eab308_50%,_#16a34a_100%)] opacity-30" />
 
-      <main className="w-full max-w-7xl mx-auto z-10">
-        <div className="flex flex-col lg:flex-row bg-white/60 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl shadow-slate-400/20 overflow-hidden">
+      <main className="w-full max-w-5xl mx-auto z-10">
+        <div className="flex flex-col lg:flex-row bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl shadow-xl shadow-slate-400/20 overflow-hidden">
             {/* Left Side */}
-            <div className="w-full lg:w-5/12 p-8 lg:p-12 xl:p-16 flex flex-col justify-center">
+            <div className="w-full lg:w-5/12 p-6 lg:p-8 flex flex-col justify-center">
                 <motion.div 
-                    initial={{ opacity: 0, x: -50 }} 
+                    initial={{ opacity: 0, x: -20 }} 
                     animate={{ opacity: 1, x: 0 }} 
-                    transition={{ duration: 0.8, ease: "easeOut" }} 
+                    transition={{ duration: 0.6 }} 
                     className="max-w-md mx-auto lg:mx-0"
                 >
-                    <Link href="/" className="flex items-center space-x-3 mb-8 group">
-                        <div className="p-2 border border-slate-200 rounded-full group-hover:bg-white transition-colors">
-                            <ArrowLeft className="w-5 h-5 text-slate-500" />
-                        </div>
-                        <Sparkles className="w-8 h-8 text-green-600" />
-                        <span className="text-2xl font-bold text-slate-900">JobSpark</span>
+                    <Link href="/" className="flex items-center space-x-2 mb-6 group">
+                        <Sparkles className="w-6 h-6 text-green-600" />
+                        <span className="text-xl font-bold text-slate-900">JobSpark</span>
                     </Link>
-                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-slate-900 mb-4">
+                    <h1 className="text-3xl font-bold text-slate-900 mb-3">
                         Your Career<br />
                         <span className="bg-gradient-to-r from-green-600 to-yellow-500 bg-clip-text text-transparent">
                             Starts Here
                         </span>
                     </h1>
-                  
-                    <p className="text-lg text-slate-600 mb-10 leading-relaxed">
+                    <p className="text-base text-slate-600 mb-6">
                         Join thousands of professionals accelerating their careers with AI-powered tools.
                     </p>
-                   {/* Tutorial Video */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-lg">
-            <h3 className="font-semibold text-slate-900 mb-4 flex items-center justify-center space-x-2">
-                <Play className="w-5 h-5 text-green-600" />
-                <span>Watch: How JobSpark Works</span>
-            </h3>
-            <div className="relative w-full max-w-2xl mx-auto">
-                <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-lg">
-                    <iframe
-                        src="https://www.youtube.com/embed/w93FOJ3pI3U"
-                        title="JobSpark Platform Tutorial"
-                        className="absolute top-0 left-0 w-full h-full border-0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                    />
-                </div>
-            </div>
-            <p className="text-sm text-slate-600 mt-3">
-                Learn how to use JobSpark's AI-powered tools to accelerate your career
-            </p>
-        </div>
-<br/>
-                  
                     <AnimatedBenefits />
                 </motion.div>
-              
             </div>
 
             {/* Right Side */}
-            <div className="w-full lg:w-7/12 p-8 lg:p-12 xl:p-16 bg-white/50 flex items-center justify-center">
+            <div className="w-full lg:w-7/12 p-6 lg:p-8 bg-white/50 flex items-center justify-center">
                 <motion.div className="w-full max-w-md" style={{ perspective: "1000px" }}>
                     <AnimatePresence mode="wait">
                         {showWelcome ? (
@@ -452,17 +422,16 @@ const AuthPageContent = () => {
                         ) : (
                             <motion.div 
                                 key={isLogin ? "login" : "signup"} 
-                                initial={{ rotateY: isLogin ? -90 : 90, opacity: 0 }} 
-                                animate={{ rotateY: 0, opacity: 1 }}
-                                exit={{ rotateY: isLogin ? 90 : -90, opacity: 0 }} 
-                                transition={{ duration: 0.5, ease: "easeInOut" }} 
-                                style={{ transformStyle: "preserve-3d" }}
+                                initial={{ opacity: 0 }} 
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }} 
+                                transition={{ duration: 0.3 }} 
                             >
-                                <div className="text-center mb-8">
-                                    <h2 className="text-3xl font-bold text-slate-900 mb-2">
+                                <div className="text-center mb-6">
+                                    <h2 className="text-2xl font-bold text-slate-900 mb-1">
                                         {isLogin ? "Welcome Back" : "Create Account"}
                                     </h2>
-                                    <p className="text-slate-600">
+                                    <p className="text-slate-600 text-sm">
                                         {isLogin ? "Sign in to continue your journey" : "Start your career transformation today"}
                                     </p>
                                 </div>
@@ -482,19 +451,19 @@ const AuthPageContent = () => {
                                     <motion.div
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg"
+                                        className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg"
                                     >
-                                        <div className="flex items-start space-x-3">
-                                            <Mail className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                                            <div className="text-sm text-green-800">
-                                                <p className="font-semibold mb-1">Email Verification Required</p>
+                                        <div className="flex items-start space-x-2">
+                                            <Mail className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                            <div className="text-xs text-green-800">
+                                                <p className="font-medium mb-1">Email Verification Required</p>
                                                 <p>After signing up, we'll send you a verification email. Please check your inbox and click the link to activate your account.</p>
                                             </div>
                                         </div>
                                     </motion.div>
                                 )}
                                 
-                                <form onSubmit={handleSubmit} className="space-y-6">
+                                <form onSubmit={handleSubmit} className="space-y-5">
                                     {!isLogin && (
                                         <FloatingLabelInput 
                                             id="name" 
@@ -562,16 +531,16 @@ const AuthPageContent = () => {
                                         whileHover={{ scale: isLoading ? 1 : 1.02 }} 
                                         whileTap={{ scale: isLoading ? 1 : 0.98 }} 
                                         disabled={isLoading}
-                                        className="w-full bg-slate-900 text-white py-4 rounded-xl font-semibold text-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                        className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                                     >
                                         {isLoading ? (
-                                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                         ) : (
                                             isLogin ? "Sign In" : "Create Account"
                                         )}
                                     </motion.button>
                                     
-                                    <p className="text-center pt-4 text-slate-600">
+                                    <p className="text-center pt-2 text-slate-600 text-sm">
                                         {isLogin ? "Don't have an account?" : "Already have an account?"}
                                         <button 
                                             type="button" 
@@ -580,7 +549,7 @@ const AuthPageContent = () => {
                                                 setErrors({});
                                                 setFormData({ name: '', email: '', password: '', confirmPassword: '' });
                                             }} 
-                                            className="ml-2 text-green-600 hover:text-green-700 font-semibold"
+                                            className="ml-1 text-green-600 hover:text-green-700 font-medium"
                                             disabled={isLoading}
                                         >
                                             {isLogin ? "Sign Up" : "Sign In"}
@@ -598,7 +567,7 @@ const AuthPageContent = () => {
   );
 };
 
-// --- Main AuthPage Component ---
+// Main AuthPage Component
 const AuthPage = () => {
   return <AuthPageContent />;
 };

@@ -32,6 +32,9 @@ import {
   Plus,
   Loader2,
   Minus,
+  Search,
+  Building2,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,6 +56,7 @@ interface SessionConfig {
   experienceYears: number;
   sessionType: string;
   questionCount: number;
+  savedJobId?: string;
 }
 
 interface Analysis {
@@ -82,7 +86,8 @@ const InterviewPracticePage = () => {
     role: '',
     experienceYears: 1,
     sessionType: 'mock-interview',
-    questionCount: 3
+    questionCount: 3,
+    savedJobId: ''
   });
   
   // Credits state with better null handling
@@ -114,6 +119,11 @@ const InterviewPracticePage = () => {
   const [analyzingResponse, setAnalyzingResponse] = useState(false);
   const [generatingFinal, setGeneratingFinal] = useState(false);
   
+  // Saved jobs state
+  const [savedJobs, setSavedJobs] = useState<any[]>([]);
+  const [selectedSavedJob, setSelectedSavedJob] = useState<any>(null);
+  const [loadingSavedJobs, setLoadingSavedJobs] = useState(false);
+  
   // Timers
   const responseStartTime = useRef<number>(0);
   const silenceTimer = useRef<NodeJS.Timeout | null>(null);
@@ -143,7 +153,7 @@ const InterviewPracticePage = () => {
     detectSilence
   } = useAutoInterview(3000, 20); // 3 seconds silence, 20 char minimum
 
-  // Session types configuration - REMOVED fixed question counts
+  // Session types configuration
   const sessionTypes = [
     { id: 'mock-interview', label: 'Full Mock Interview', description: 'Complete interview simulation' },
     { id: 'introduction', label: 'Introduction Practice', description: 'Practice self-introduction' },
@@ -152,6 +162,26 @@ const InterviewPracticePage = () => {
     { id: 'salary', label: 'Salary Negotiation', description: 'Compensation discussions' },
     { id: 'job-specific', label: 'Technical Questions', description: 'Role-specific competencies' }
   ];
+
+  // Load saved jobs when component mounts
+  useEffect(() => {
+    const loadSavedJobs = async () => {
+      if (!user) return;
+      
+      setLoadingSavedJobs(true);
+      try {
+        const { getUserSavedJobs } = await import('@/lib/database');
+        const jobs = await getUserSavedJobs(user.id);
+        setSavedJobs(jobs);
+      } catch (error) {
+        console.error('Error loading saved jobs:', error);
+      } finally {
+        setLoadingSavedJobs(false);
+      }
+    };
+
+    loadSavedJobs();
+  }, [user]);
 
   // Check credits when component mounts or user changes
   useEffect(() => {
@@ -263,9 +293,31 @@ const InterviewPracticePage = () => {
     }
   };
 
+  const handleSavedJobChange = async (jobId: string) => {
+    setSessionConfig(prev => ({ ...prev, savedJobId: jobId }));
+    
+    if (jobId) {
+      try {
+        const { getSavedJobById } = await import('@/lib/database');
+        const job = await getSavedJobById(jobId);
+        if (job) {
+          setSelectedSavedJob(job);
+          setSessionConfig(prev => ({
+            ...prev,
+            role: job.title
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading saved job:', error);
+      }
+    } else {
+      setSelectedSavedJob(null);
+    }
+  };
+
   const generateQuestions = async () => {
     if (!sessionConfig.role.trim()) {
-      alert('Please enter a job role');
+      alert('Please enter a job role or select a saved job');
       return;
     }
 
@@ -278,7 +330,8 @@ const InterviewPracticePage = () => {
           role: sessionConfig.role,
           experienceYears: sessionConfig.experienceYears,
           sessionType: sessionConfig.sessionType,
-          questionCount: sessionConfig.questionCount
+          questionCount: sessionConfig.questionCount,
+          savedJobId: sessionConfig.savedJobId || null
         })
       });
 
@@ -472,7 +525,8 @@ const InterviewPracticePage = () => {
           type: q.type
         })),
         overallDuration: Date.now() - responseStartTime.current,
-        sessionType: sessionConfig.sessionType
+        sessionType: sessionConfig.sessionType,
+        savedJobId: sessionConfig.savedJobId
       };
 
       const response = await fetch('/api/interview/final-analysis', {
@@ -574,7 +628,7 @@ const InterviewPracticePage = () => {
     }));
   };
 
-  // Render setup step with question count selector
+  // Render setup step with saved job selection and question count selector
   const renderSetup = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -591,6 +645,56 @@ const InterviewPracticePage = () => {
         </div>
 
         <div className="space-y-6">
+          {/* Saved Jobs Selection */}
+          {savedJobs.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Select a Saved Job (Optional)
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <select
+                  value={sessionConfig.savedJobId}
+                  onChange={(e) => handleSavedJobChange(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={loadingSavedJobs}
+                >
+                  <option value="">-- Select a saved job --</option>
+                  {savedJobs.map(job => (
+                    <option key={job.id} value={job.id}>
+                      {job.title} at {job.company}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {selectedSavedJob && (
+                <div className="mt-4 p-4 bg-slate-50 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Building2 className="w-4 h-4 text-slate-600" />
+                    <span className="font-medium text-slate-900">{selectedSavedJob.company}</span>
+                  </div>
+                  {selectedSavedJob.location && (
+                    <div className="flex items-center space-x-2 mb-2 text-sm text-slate-600">
+                      <MapPin className="w-4 h-4" />
+                      <span>{selectedSavedJob.location}</span>
+                    </div>
+                  )}
+                  {selectedSavedJob.description && (
+                    <p className="text-sm text-slate-600 mt-2 line-clamp-2">{selectedSavedJob.description}</p>
+                  )}
+                  <div className="mt-2">
+                    <Link href="/job-search?filter=saved">
+                      <button className="text-xs text-purple-600 hover:text-purple-800">
+                        View all saved jobs →
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Job Role *
@@ -601,7 +705,11 @@ const InterviewPracticePage = () => {
               onChange={(e) => setSessionConfig(prev => ({ ...prev, role: e.target.value }))}
               className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="e.g., Software Engineer, Marketing Manager"
+              disabled={!!selectedSavedJob}
             />
+            {selectedSavedJob && (
+              <p className="text-xs text-slate-500 mt-1">Role automatically filled from saved job</p>
+            )}
           </div>
 
           <div>
@@ -644,7 +752,7 @@ const InterviewPracticePage = () => {
             </div>
           </div>
 
-          {/* NEW: Question Count Selector */}
+          {/* Question Count Selector */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Number of Questions
@@ -778,6 +886,12 @@ const InterviewPracticePage = () => {
                 <span className="text-slate-600">Questions</span>
                 <span className="font-medium text-slate-900">{questions.length}</span>
               </div>
+              {selectedSavedJob && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Saved Job</span>
+                  <span className="font-medium text-slate-900">{selectedSavedJob.company}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1009,6 +1123,12 @@ const InterviewPracticePage = () => {
                   <span className="text-sm text-slate-600">Questions</span>
                   <p className="font-medium text-slate-900">{questions.length} questions</p>
                 </div>
+                {selectedSavedJob && (
+                  <div>
+                    <span className="text-sm text-slate-600">Saved Job</span>
+                    <p className="font-medium text-slate-900">{selectedSavedJob.company}</p>
+                  </div>
+                )}
               </div>
             </div>
 

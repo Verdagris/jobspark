@@ -27,11 +27,13 @@ import {
   MessageSquare,
   Search,
   Copy,
-  SkipForward
+  SkipForward,
+  Home
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
+import Link from "next/link";
 import {
   createUserProfile,
   updateUserProfile,
@@ -118,6 +120,7 @@ const OnboardingPage = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [currentQuote, setCurrentQuote] = useState(0);
   const [currentStat, setCurrentStat] = useState(0);
+  const [canExit, setCanExit] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     personalInfo: {
       fullName: "",
@@ -159,28 +162,32 @@ const OnboardingPage = () => {
       title: "Personal Information", 
       icon: User, 
       description: "Tell us about yourself",
-      guidance: "This information helps employers understand who you are and how to contact you. A complete profile increases your visibility by 40%."
+      guidance: "This information helps employers understand who you are and how to contact you. A complete profile increases your visibility by 40%.",
+      required: true
     },
     { 
       id: "experience", 
       title: "Work Experience", 
       icon: Briefcase, 
       description: "Your professional journey",
-      guidance: "Showcase your career progression and achievements. Use action verbs and quantify your impact where possible."
+      guidance: "Showcase your career progression and achievements. Use action verbs and quantify your impact where possible.",
+      required: false
     },
     { 
       id: "education", 
       title: "Education", 
       icon: GraduationCap, 
       description: "Your academic background",
-      guidance: "Include your formal education and any relevant certifications. This helps establish your knowledge foundation."
+      guidance: "Include your formal education and any relevant certifications. This helps establish your knowledge foundation.",
+      required: false
     },
     { 
       id: "skills", 
       title: "Skills", 
       icon: Award, 
       description: "Your expertise and abilities",
-      guidance: "List both technical and soft skills. Be honest about your proficiency levels - employers value authenticity."
+      guidance: "List both technical and soft skills. Be honest about your proficiency levels - employers value authenticity.",
+      required: false
     }
   ];
 
@@ -212,6 +219,12 @@ const OnboardingPage = () => {
       }));
     }
   }, [user]);
+
+  // Check if user can exit onboarding (mandatory fields completed)
+  useEffect(() => {
+    const mandatoryFieldsComplete = formData.personalInfo.fullName && formData.personalInfo.email;
+    setCanExit(mandatoryFieldsComplete);
+  }, [formData.personalInfo.fullName, formData.personalInfo.email]);
 
   const handleInputChange = (section: keyof FormData, field: string, value: any, index?: number) => {
     setFormData(prev => {
@@ -353,6 +366,12 @@ const OnboardingPage = () => {
   const prevStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleExitOnboarding = () => {
+    if (canExit) {
+      router.push('/dashboard');
     }
   };
 
@@ -1074,19 +1093,27 @@ const OnboardingPage = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        {/* Header */}
+        {/* Header with Exit Button */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="flex justify-between items-center mb-8"
         >
-          <div className="flex items-center justify-center space-x-3 mb-4">
+          <div className="flex items-center space-x-3">
             <div className="p-3 bg-green-100 rounded-full">
               <Sparkles className="w-8 h-8 text-green-600" />
             </div>
-            <h1 className="text-4xl font-bold text-slate-900">JobSpark Profile Setup</h1>
+            <h1 className="text-4xl font-bold text-slate-900">Profile Setup</h1>
           </div>
-          <p className="text-lg text-slate-600">Let's build your professional profile step by step</p>
+          
+          {canExit && (
+            <Link href="/dashboard">
+              <button className="flex items-center space-x-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors">
+                <Home className="w-4 h-4" />
+                <span>Go to Dashboard</span>
+              </button>
+            </Link>
+          )}
         </motion.div>
 
         {/* Enhanced Progress Bar with Larger Circles */}
