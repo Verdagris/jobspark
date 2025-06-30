@@ -16,7 +16,8 @@ import {
   Award,
   RefreshCw,
   FileText,
-  MessageSquare
+  MessageSquare,
+  ExternalLink
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -71,14 +72,26 @@ const CreditsPage = () => {
 
       const data = await response.json();
 
-      if (data.success) {
-        // Create a temporary form and submit to PayFast
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = data.paymentForm;
-        document.body.appendChild(tempDiv);
-        
-        // The form will auto-submit via the script in the HTML
+      if (data.success && data.paymentData && data.paymentUrl) {
+        // Create a form and submit to PayFast
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = data.paymentUrl;
+        form.style.display = 'none';
+
+        // Add all payment data as hidden inputs
+        Object.entries(data.paymentData).forEach(([key, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
       } else {
+        console.error('Payment initiation failed:', data);
         alert('Failed to initiate payment. Please try again.');
       }
     } catch (error) {
@@ -263,24 +276,53 @@ const CreditsPage = () => {
                   <button
                     onClick={() => handlePurchase(pkg.id)}
                     disabled={purchasing === pkg.id}
-                    className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+                    className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
                       pkg.popular
                         ? 'bg-green-500 text-white hover:bg-green-600'
                         : 'bg-slate-900 text-white hover:bg-slate-800'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {purchasing === pkg.id ? (
-                      <div className="flex items-center justify-center space-x-2">
+                      <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         <span>Processing...</span>
-                      </div>
+                      </>
                     ) : (
-                      'Purchase Credits'
+                      <>
+                        <CreditCard className="w-4 h-4" />
+                        <span>Purchase Credits</span>
+                        <ExternalLink className="w-4 h-4" />
+                      </>
                     )}
                   </button>
                 </div>
               </motion.div>
             ))}
+          </div>
+        </motion.div>
+
+        {/* Payment Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8"
+        >
+          <div className="flex items-start space-x-3">
+            <Shield className="w-6 h-6 text-blue-600 mt-1" />
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-2">Secure Payment with PayFast</h3>
+              <p className="text-blue-800 text-sm mb-3">
+                Your payment is processed securely by PayFast, South Africa's leading payment gateway. 
+                We support all major South African banks and payment methods.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Instant Bank Transfer</span>
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Credit Cards</span>
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Debit Cards</span>
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">SnapScan</span>
+              </div>
+            </div>
           </div>
         </motion.div>
 

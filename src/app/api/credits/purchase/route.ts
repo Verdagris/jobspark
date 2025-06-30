@@ -12,6 +12,60 @@ export async function POST(request: NextRequest) {
     } = await request.json();
 
     // Get user from session
+    const authHeader = request.headers.get('authorization');
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      
+      if (error || !user) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        );
+      }
+
+      // Find the selected package
+      const selectedPackage = CREDIT_PACKAGES.find(pkg => pkg.id === packageId);
+      if (!selectedPackage) {
+        return NextResponse.json(
+          { error: 'Invalid package selected' },
+          { status: 400 }
+        );
+      }
+
+      // Create credit purchase record
+      const purchase = await createCreditPurchase(
+        user.id,
+        selectedPackage.credits,
+        selectedPackage.price
+      );
+
+      if (!purchase) {
+        return NextResponse.json(
+          { error: 'Failed to create purchase record' },
+          { status: 500 }
+        );
+      }
+
+      // Create PayFast client and payment data
+      const payfast = createPayFastClient();
+      const paymentData = payfast.createPaymentData(
+        purchase.id,
+        userEmail,
+        userName,
+        selectedPackage.credits,
+        selectedPackage.price
+      );
+
+      return NextResponse.json({
+        success: true,
+        purchaseId: purchase.id,
+        paymentUrl: payfast.getPaymentUrl(),
+        paymentData
+      });
+    }
+
+    // Fallback: try to get session from cookies
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !session?.user) {
@@ -54,13 +108,9 @@ export async function POST(request: NextRequest) {
       selectedPackage.price
     );
 
-    // Return payment form HTML for redirect
-    const paymentForm = payfast.createPaymentForm(paymentData);
-
     return NextResponse.json({
       success: true,
       purchaseId: purchase.id,
-      paymentForm,
       paymentUrl: payfast.getPaymentUrl(),
       paymentData
     });

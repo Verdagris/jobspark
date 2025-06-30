@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Zap, Plus, AlertTriangle } from "lucide-react";
+import { Zap, Plus, AlertTriangle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCredits, CREDIT_COSTS } from "@/lib/credits";
@@ -15,24 +15,36 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
   const { user } = useAuth();
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchBalance = async () => {
-      if (!user) return;
-      
-      try {
-        const response = await fetch('/api/credits/balance');
+  const fetchBalance = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/credits/balance');
+      if (response.ok) {
         const data = await response.json();
         setBalance(data.balance);
-      } catch (error) {
-        console.error('Error fetching credit balance:', error);
-      } finally {
-        setLoading(false);
       }
+    } catch (error) {
+      console.error('Error fetching credit balance:', error);
+    }
+  };
+
+  useEffect(() => {
+    const loadBalance = async () => {
+      await fetchBalance();
+      setLoading(false);
     };
 
-    fetchBalance();
+    loadBalance();
   }, [user]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchBalance();
+    setRefreshing(false);
+  };
 
   if (loading) {
     return (
@@ -61,6 +73,15 @@ export const CreditBalance = ({ className = "", showPurchaseButton = true }: Cre
           <AlertTriangle className="w-4 h-4 text-red-600" />
         )}
       </div>
+      
+      <button
+        onClick={handleRefresh}
+        disabled={refreshing}
+        className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+        title="Refresh balance"
+      >
+        <RefreshCw className={`w-4 h-4 text-slate-600 ${refreshing ? 'animate-spin' : ''}`} />
+      </button>
       
       {showPurchaseButton && (
         <Link href="/credits">

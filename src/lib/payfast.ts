@@ -101,7 +101,7 @@ class PayFastClient {
       m_payment_id: purchaseId,
       amount: (amountCents / 100).toFixed(2),
       item_name: `${creditsAmount} JobSpark Credits`,
-      item_description: `Purchase ${creditsAmount} credits for interview practice`,
+      item_description: `Purchase ${creditsAmount} credits for interview practice and CV generation`,
       custom_str1: purchaseId, // Store purchase ID for reference
       custom_str2: creditsAmount.toString(), // Store credits amount
     };
@@ -147,12 +147,12 @@ export function createPayFastClient(): PayFastClient {
   const config: PayFastConfig = {
     merchantId: process.env.PF_MERCHANT_ID!,
     merchantKey: process.env.PF_MERCHANT_KEY!,
-    url: process.env.PF_URL!,
+    url: process.env.PF_URL || 'https://sandbox.payfast.co.za/eng/process', // Default to sandbox
     saltPassphrase: process.env.PF_SALT_PASSPHRASE!,
   };
 
-  if (!config.merchantId || !config.merchantKey || !config.url) {
-    throw new Error('PayFast configuration is incomplete. Please check environment variables.');
+  if (!config.merchantId || !config.merchantKey) {
+    throw new Error('PayFast configuration is incomplete. Please check PF_MERCHANT_ID and PF_MERCHANT_KEY environment variables.');
   }
 
   return new PayFastClient(config);
@@ -163,7 +163,6 @@ export function validatePayFastConfig(): boolean {
   return !!(
     process.env.PF_MERCHANT_ID &&
     process.env.PF_MERCHANT_KEY &&
-    process.env.PF_URL &&
     process.env.PF_SALT_PASSPHRASE
   );
 }
