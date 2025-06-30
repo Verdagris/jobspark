@@ -258,18 +258,31 @@ export async function getCreditPurchase(purchaseId: string): Promise<CreditPurch
 
 // Format credits for display - Fixed the undefined error
 export function formatCredits(credits: number | null | undefined): string {
-  if (credits === null || credits === undefined) {
+  // Handle null, undefined, or non-numeric values
+  if (credits === null || credits === undefined || typeof credits !== 'number') {
     return '0';
   }
-  return credits.toLocaleString();
+  
+  // Ensure it's a valid number
+  if (isNaN(credits)) {
+    return '0';
+  }
+  
+  return Math.floor(credits).toLocaleString();
 }
 
 // Format price for display
 export function formatPrice(cents: number): string {
+  if (typeof cents !== 'number' || isNaN(cents)) {
+    return 'R0.00';
+  }
   return `R${(cents / 100).toFixed(2)}`;
 }
 
 // Calculate credits per rand
 export function getCreditsPerRand(credits: number, cents: number): number {
+  if (typeof credits !== 'number' || typeof cents !== 'number' || cents === 0) {
+    return 0;
+  }
   return credits / (cents / 100);
 }

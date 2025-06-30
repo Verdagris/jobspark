@@ -58,6 +58,8 @@ const CreditsPage = () => {
     setPurchasing(packageId);
     
     try {
+      console.log('Starting purchase for package:', packageId);
+      
       // Get the current session token
       const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
       
@@ -70,6 +72,8 @@ const CreditsPage = () => {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
+      console.log('Making API request with headers:', headers);
+
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
         headers,
@@ -81,14 +85,20 @@ const CreditsPage = () => {
         }),
       });
 
+      console.log('API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('API error response:', errorData);
         throw new Error(errorData.error || 'Failed to initiate payment');
       }
 
       const data = await response.json();
+      console.log('API success response:', data);
 
       if (data.success && data.paymentData && data.paymentUrl) {
+        console.log('Creating payment form...');
+        
         // Create a form and submit to PayFast
         const form = document.createElement('form');
         form.method = 'POST';
@@ -105,6 +115,7 @@ const CreditsPage = () => {
         });
 
         document.body.appendChild(form);
+        console.log('Submitting form to PayFast...');
         form.submit();
       } else {
         throw new Error('Invalid payment response');
