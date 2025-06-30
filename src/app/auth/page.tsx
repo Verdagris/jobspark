@@ -234,12 +234,22 @@ const WelcomeScreen = ({ onGetStarted }: { onGetStarted: () => void }) => (
       <div className="relative w-full max-w-md mx-auto">
         <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-lg">
           <iframe
-            src="https://www.youtube.com/embed/w93FOJ3pI3U"
+            src="https://www.youtube.com/embed/mTX56icw2nI?si=8JjXVuaBXWaFSCDG"
             title="JobSpark Platform Tutorial"
             className="absolute top-0 left-0 w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
+          {/* <iframe
+            width="560"
+            height="315"
+            src="https://www.youtube.com/embed/mTX56icw2nI?si=8JjXVuaBXWaFSCDG"
+            title="JobSpark Platform Tutorial"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          ></iframe> */}
         </div>
       </div>
     </div>

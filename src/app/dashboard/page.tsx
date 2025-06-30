@@ -885,14 +885,14 @@ const DashboardPage = () => {
                   <div className={`p-3 rounded-lg ${stat.color}`}>
                     <stat.icon className="w-6 h-6" />
                   </div>
-                  {stat.trend === "up" && (
+                  {/* {stat.trend === "up" && (
                     <div className="flex items-center space-x-1 mt-2">
                       <TrendingUp className="w-3 h-3 text-green-500" />
                       <span className="text-xs text-green-600">
                         +{Math.floor(Math.random() * 10) + 1}%
                       </span>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
             </div>
