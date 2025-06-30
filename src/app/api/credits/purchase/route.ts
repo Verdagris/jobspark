@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPayFastClient, validatePayFastConfig } from '@/lib/payfast';
 import { createCreditPurchase, CREDIT_PACKAGES } from '@/lib/credits';
-import { supabase } from '@/lib/supabase';
+import { createServerComponentClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,61 +25,52 @@ export async function POST(request: NextRequest) {
 
     console.log('📦 Request data:', { packageId, userEmail, userName });
 
-    // Try multiple authentication methods
+    // Create Supabase client with cookies for server-side auth
+    const cookieStore = cookies();
+    const supabase = createServerComponentClient({ cookies: () => cookieStore });
+
+    // Try to get the current user session
     let user = null;
     let authError = null;
 
-    // Method 1: Try Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      console.log('🔑 Trying Authorization header token, length:', token.length);
+    try {
+      const { data: { user: sessionUser }, error: sessionError } = await supabase.auth.getUser();
       
-      try {
-        const { data: { user: headerUser }, error: headerError } = await supabase.auth.getUser(token);
-        if (headerUser && !headerError) {
-          user = headerUser;
-          console.log('✅ Authentication successful via header:', user.email);
-        } else {
-          console.log('❌ Header auth failed:', headerError);
-          authError = headerError;
-        }
-      } catch (error) {
-        console.log('❌ Header auth exception:', error);
+      if (sessionUser && !sessionError) {
+        user = sessionUser;
+        console.log('✅ Authentication successful via server session:', user.email);
+      } else {
+        console.log('❌ Server session auth failed:', sessionError);
+        authError = sessionError;
       }
+    } catch (error) {
+      console.log('❌ Server session auth exception:', error);
+      authError = error;
     }
 
-    // Method 2: Try session-based auth if header failed
+    // If server-side auth failed, try the Authorization header
     if (!user) {
-      console.log('🔄 Trying session-based authentication...');
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (session?.user && !sessionError) {
-          user = session.user;
-          console.log('✅ Authentication successful via session:', user.email);
-        } else {
-          console.log('❌ Session auth failed:', sessionError);
-          authError = sessionError;
-        }
-      } catch (error) {
-        console.log('❌ Session auth exception:', error);
-      }
-    }
-
-    // Method 3: Try to get user by email as fallback
-    if (!user && userEmail) {
-      console.log('🔄 Trying email-based user lookup...');
-      try {
-        const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
-        if (users && !usersError) {
-          const foundUser = users.find(u => u.email === userEmail);
-          if (foundUser) {
-            user = foundUser;
-            console.log('✅ User found via email lookup:', user.email);
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '');
+        console.log('🔑 Trying Authorization header token');
+        
+        try {
+          // Import supabase client directly for token verification
+          const { supabase: directClient } = await import('@/lib/supabase');
+          const { data: { user: headerUser }, error: headerError } = await directClient.auth.getUser(token);
+          
+          if (headerUser && !headerError) {
+            user = headerUser;
+            console.log('✅ Authentication successful via header:', user.email);
+          } else {
+            console.log('❌ Header auth failed:', headerError);
+            authError = headerError;
           }
+        } catch (error) {
+          console.log('❌ Header auth exception:', error);
+          authError = error;
         }
-      } catch (error) {
-        console.log('❌ Email lookup failed:', error);
       }
     }
 
@@ -89,7 +81,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Please sign in to purchase credits',
-          details: 'Authentication failed. Please refresh the page and try again.',
+          details: 'Authentication failed. Please refresh the page and try signing in again.',
           authError: authError?.message || 'Unknown authentication error'
         },
         { status: 401 }
@@ -140,11 +132,13 @@ export async function POST(request: NextRequest) {
     console.log('💳 PayFast payment data created');
     console.log('🔗 Payment URL:', payfast.getPaymentUrl());
 
-    return NextResponse.json({
-      success: true,
-      purchaseId: purchase.id,
-      paymentUrl: payfast.getPaymentUrl(),
-      paymentData
+    // Return the payment form HTML instead of JSON for direct redirect
+    const paymentForm = payfast.createPaymentForm(paymentData);
+
+    return new NextResponse(paymentForm, {
+      headers: {
+        'Content-Type': 'text/html',
+      },
     });
 
   } catch (error) {

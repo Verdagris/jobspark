@@ -141,12 +141,68 @@ class PayFastClient {
       .join('\n');
 
     return `
-      <form id="payfast-form" action="${this.getPaymentUrl()}" method="post">
-        ${formFields}
-      </form>
-      <script>
-        document.getElementById('payfast-form').submit();
-      </script>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Redirecting to PayFast...</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f8fafc;
+          }
+          .loading {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          }
+          .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .text {
+            color: #374151;
+            font-size: 16px;
+            margin-bottom: 0.5rem;
+          }
+          .subtext {
+            color: #6b7280;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="loading">
+          <div class="spinner"></div>
+          <div class="text">Redirecting to PayFast...</div>
+          <div class="subtext">Please wait while we redirect you to complete your payment</div>
+        </div>
+        <form id="payfast-form" action="${this.getPaymentUrl()}" method="post" style="display: none;">
+          ${formFields}
+        </form>
+        <script>
+          // Auto-submit the form after a short delay
+          setTimeout(function() {
+            document.getElementById('payfast-form').submit();
+          }, 1500);
+        </script>
+      </body>
+      </html>
     `;
   }
 }

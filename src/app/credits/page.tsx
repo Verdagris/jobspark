@@ -67,57 +67,16 @@ const CreditsPage = () => {
       console.log('🚀 Starting purchase for package:', packageId);
       console.log('👤 User:', user.email);
       
-      // Get fresh session token with multiple attempts
-      let session = null;
-      let sessionError = null;
+      // Get fresh session token
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      // Try to get session multiple times
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        console.log(`🔄 Session attempt ${attempt}/3`);
-        
-        try {
-          const { data: { session: currentSession }, error: currentError } = await (await import('@/lib/supabase')).supabase.auth.getSession();
-          
-          if (currentSession && !currentError) {
-            session = currentSession;
-            console.log('✅ Session obtained on attempt', attempt);
-            break;
-          } else {
-            sessionError = currentError;
-            console.log(`❌ Session attempt ${attempt} failed:`, currentError);
-            
-            // If not the last attempt, wait a bit and try again
-            if (attempt < 3) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-          }
-        } catch (error) {
-          console.log(`❌ Session attempt ${attempt} exception:`, error);
-          sessionError = error;
-        }
+      if (!session || sessionError) {
+        console.error('❌ No valid session:', sessionError);
+        throw new Error('Please refresh the page and sign in again.');
       }
 
-      // If we still don't have a session, try to refresh
-      if (!session) {
-        console.log('🔄 Attempting to refresh session...');
-        try {
-          const { data: { session: refreshedSession }, error: refreshError } = await (await import('@/lib/supabase')).supabase.auth.refreshSession();
-          if (refreshedSession && !refreshError) {
-            session = refreshedSession;
-            console.log('✅ Session refreshed successfully');
-          } else {
-            console.log('❌ Session refresh failed:', refreshError);
-          }
-        } catch (error) {
-          console.log('❌ Session refresh exception:', error);
-        }
-      }
-
-      if (!session) {
-        throw new Error('Authentication session expired. Please refresh the page and sign in again.');
-      }
-
-      console.log('🔑 Session token obtained, user:', session.user.email);
+      console.log('🔑 Session obtained for user:', session.user.email);
 
       const requestBody = {
         packageId,
@@ -127,79 +86,40 @@ const CreditsPage = () => {
 
       console.log('📦 Request body:', requestBody);
 
-      const response = await fetch('/api/credits/purchase', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestBody),
+      // Create a form and submit it to the purchase API
+      // This will handle the PayFast redirect properly
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/api/credits/purchase';
+      form.style.display = 'none';
+      form.target = '_self';
+
+      // Add the request data as form fields
+      Object.entries(requestBody).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value as string;
+        form.appendChild(input);
       });
 
-      console.log('📡 API response status:', response.status);
+      // Add authorization header as a hidden field
+      const authInput = document.createElement('input');
+      authInput.type = 'hidden';
+      authInput.name = '_auth_token';
+      authInput.value = session.access_token;
+      form.appendChild(authInput);
 
-      const responseText = await response.text();
-      console.log('📄 Raw response:', responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('❌ Failed to parse response as JSON:', parseError);
-        throw new Error('Invalid response from server. Please try again.');
-      }
-
-      if (!response.ok) {
-        console.error('❌ API error response:', data);
-        
-        // Handle specific authentication errors
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please refresh the page and sign in again.');
-        }
-        
-        throw new Error(data.error || `Server error: ${response.status}`);
-      }
-
-      console.log('✅ API success response:', data);
-
-      if (data.success && data.paymentData && data.paymentUrl) {
-        console.log('💳 Creating PayFast payment form...');
-        
-        // Create a form and submit to PayFast
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = data.paymentUrl;
-        form.style.display = 'none';
-        form.target = '_self'; // Ensure it opens in the same window
-
-        // Add all payment data as hidden inputs
-        Object.entries(data.paymentData).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value as string;
-          form.appendChild(input);
-          console.log(`🔧 Added form field: ${key} = ${value}`);
-        });
-
-        document.body.appendChild(form);
-        console.log('🚀 Submitting form to PayFast:', data.paymentUrl);
-        
-        // Add a small delay to ensure the form is properly added to DOM
-        setTimeout(() => {
-          form.submit();
-        }, 100);
-        
-      } else {
-        console.error('❌ Invalid payment response structure:', data);
-        throw new Error('Invalid payment response from server');
-      }
+      document.body.appendChild(form);
+      console.log('🚀 Submitting purchase form...');
+      
+      // Submit the form which will redirect to PayFast
+      form.submit();
+      
     } catch (error) {
       console.error('💥 Error purchasing credits:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to initiate payment: ${errorMessage}`);
-    } finally {
       setPurchasing(null);
     }
   };
