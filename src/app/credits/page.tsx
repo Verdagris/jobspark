@@ -58,17 +58,33 @@ const CreditsPage = () => {
     setPurchasing(packageId);
     
     try {
+      // Get the current session token
+      const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add authorization header if we have a session
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
+        credentials: 'include', // Include cookies
         body: JSON.stringify({
           packageId,
           userEmail: user.email,
           userName: user.user_metadata?.full_name || 'User'
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to initiate payment');
+      }
 
       const data = await response.json();
 
@@ -91,12 +107,11 @@ const CreditsPage = () => {
         document.body.appendChild(form);
         form.submit();
       } else {
-        console.error('Payment initiation failed:', data);
-        alert('Failed to initiate payment. Please try again.');
+        throw new Error('Invalid payment response');
       }
     } catch (error) {
       console.error('Error purchasing credits:', error);
-      alert('Failed to initiate payment. Please try again.');
+      alert(`Failed to initiate payment: ${error instanceof Error ? error.message : 'Please try again.'}`);
     } finally {
       setPurchasing(null);
     }
