@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       context, 
       cvData,
       sessionType,
-      questionCount = 6
+      questionCount = 3 // Default to 3 questions, allow 2-5
     }: {
       role: string;
       experienceYears: number;
@@ -33,6 +33,9 @@ export async function POST(request: NextRequest) {
       sessionType: string;
       questionCount: number;
     } = await request.json();
+
+    // Validate question count
+    const validQuestionCount = Math.min(Math.max(questionCount, 2), 5);
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
@@ -89,13 +92,15 @@ ${context ? `**Additional Context:** ${context}` : ''}
 **Session Type:** ${sessionType}
 **Session Focus:** ${sessionConfig.focus}
 **Question Types to Include:** ${sessionConfig.types.join(', ')}
+**Number of Questions Required:** ${validQuestionCount}
 
-Generate exactly ${questionCount} interview questions that are:
+Generate exactly ${validQuestionCount} interview questions that are:
 1. Specifically focused on ${sessionConfig.focus}
 2. Appropriate for the role and experience level
 3. Relevant to the candidate's background if CV data is provided
 4. Designed to assess key competencies for ${sessionType === 'mock-interview' ? 'overall interview performance' : sessionType.replace('-', ' ')}
 5. Progressively challenging but appropriate for the session focus
+6. Concise and clear (not overly long or complex)
 
 For ${sessionType} sessions, ensure questions are:
 ${sessionType === 'introduction' ? '- Focused on self-presentation and personal branding\n- About career journey and value proposition\n- Designed to help practice elevator pitches' : ''}
@@ -105,7 +110,7 @@ ${sessionType === 'salary' ? '- About compensation expectations and negotiation\
 ${sessionType === 'job-specific' ? '- Technical and role-specific competencies\n- Industry knowledge and best practices\n- Problem-solving and domain expertise' : ''}
 ${sessionType === 'mock-interview' ? '- Comprehensive mix of all question types\n- Realistic interview flow and progression\n- Complete interview simulation' : ''}
 
-**CRITICAL: Return ONLY a valid JSON array of question objects. No explanations, no markdown formatting, no additional text.**
+**CRITICAL: Return ONLY a valid JSON array of exactly ${validQuestionCount} question objects. No explanations, no markdown formatting, no additional text.**
 
 Format: [
   {
@@ -118,7 +123,7 @@ Format: [
 ]
 
 Question types should include: ${sessionConfig.types.join(', ')}.
-Expected duration is in seconds.
+Expected duration is in seconds (90-180 seconds per question).
 `;
 
     const result = await model.generateContent(prompt);
@@ -148,7 +153,7 @@ Expected duration is in seconds.
       // Ensure each question has required fields and limit to requested count
       questionsData = questionsData.filter(q => 
         q && typeof q === 'object' && q.question && q.type
-      ).slice(0, questionCount).map((q, index) => ({
+      ).slice(0, validQuestionCount).map((q, index) => ({
         id: q.id || index + 1,
         question: q.question,
         type: q.type || 'general',
@@ -157,9 +162,9 @@ Expected duration is in seconds.
       }));
       
       // Ensure we have the requested number of questions
-      if (questionsData.length < questionCount) {
+      if (questionsData.length < validQuestionCount) {
         // Add fallback questions if needed
-        const fallbackQuestions = generateFallbackQuestions(sessionType, role, questionCount - questionsData.length);
+        const fallbackQuestions = generateFallbackQuestions(sessionType, role, validQuestionCount - questionsData.length);
         questionsData = [...questionsData, ...fallbackQuestions];
       }
       
@@ -167,7 +172,7 @@ Expected duration is in seconds.
       console.error('Failed to parse AI response as JSON:', parseError);
       
       // Generate fallback questions based on session type
-      questionsData = generateFallbackQuestions(sessionType, role, questionCount);
+      questionsData = generateFallbackQuestions(sessionType, role, validQuestionCount);
     }
 
     return NextResponse.json({ questions: questionsData });

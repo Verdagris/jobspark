@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { text, voiceId = 'onwK4e9ZLuTAKqWW03F9', messageType = 'question' }: { 
+    const { text, voiceId = 'gsm4lUH9bnZ3pjR1Pw7w', messageType = 'question' }: { 
       text: string; 
       voiceId?: string;
       messageType?: 'question' | 'encouragement' | 'feedback' | 'summary';

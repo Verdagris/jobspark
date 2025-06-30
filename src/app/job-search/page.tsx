@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
   Briefcase, 
@@ -28,7 +28,12 @@ import {
   Play,
   CheckCircle,
   AlertTriangle,
-  MessageSquare
+  MessageSquare,
+  Save,
+  Calendar,
+  DollarSign,
+  FileText,
+  Link as LinkIcon
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -149,6 +154,20 @@ const JobSearchPage = () => {
   const [showAddJobModal, setShowAddJobModal] = useState(false);
   const [userSkills, setUserSkills] = useState<string[]>([]);
   const [userExperiences, setUserExperiences] = useState<any[]>([]);
+
+  // Add Job Modal State
+  const [newJobData, setNewJobData] = useState({
+    title: '',
+    company: '',
+    location: '',
+    salary_min: '',
+    salary_max: '',
+    description: '',
+    requirements: '',
+    benefits: '',
+    job_type: 'Full-time',
+    url: ''
+  });
 
   const JOB_TYPE_LABELS: { [key: string]: string } = {
     full_time: 'Full-time',
@@ -474,6 +493,58 @@ const JobSearchPage = () => {
     setSearchTerm("");
   };
 
+  const handleAddJob = async () => {
+    if (!user || !newJobData.title || !newJobData.company) {
+      alert('Please fill in at least the job title and company name.');
+      return;
+    }
+
+    try {
+      const savedJob = await createSavedJob({
+        user_id: user.id,
+        title: newJobData.title,
+        company: newJobData.company,
+        location: newJobData.location || null,
+        salary_min: newJobData.salary_min ? parseInt(newJobData.salary_min) : null,
+        salary_max: newJobData.salary_max ? parseInt(newJobData.salary_max) : null,
+        description: newJobData.description || null,
+        requirements: newJobData.requirements ? newJobData.requirements.split('\n').filter(r => r.trim()) : null,
+        benefits: newJobData.benefits ? newJobData.benefits.split('\n').filter(b => b.trim()) : null,
+        job_type: newJobData.job_type,
+        url: newJobData.url || null,
+        logo: null,
+        is_applied: false,
+        applied_at: null,
+        source: 'manual'
+      });
+
+      setSavedJobs(prev => [...prev, savedJob]);
+      
+      // Reset form and close modal
+      setNewJobData({
+        title: '',
+        company: '',
+        location: '',
+        salary_min: '',
+        salary_max: '',
+        description: '',
+        requirements: '',
+        benefits: '',
+        job_type: 'Full-time',
+        url: ''
+      });
+      setShowAddJobModal(false);
+      
+      // Switch to saved jobs filter to show the new job
+      setSelectedFilter('saved');
+      
+      alert('Job saved successfully!');
+    } catch (error) {
+      console.error('Error adding job:', error);
+      alert('Failed to save job. Please try again.');
+    }
+  };
+
   const filteredJobs = useMemo(() => {
     let currentJobs = applyMainFilter(jobs, selectedFilter, savedJobs);
     currentJobs = applySearchFilter(currentJobs, searchTerm);
@@ -491,6 +562,197 @@ const JobSearchPage = () => {
     { id: "saved", label: "Saved", count: savedJobs.length },
     { id: "applied", label: "Applied", count: savedJobs.filter(j => j.is_applied).length }
   ];
+
+  // Add Job Modal Component
+  const AddJobModal = () => (
+    <AnimatePresence>
+      {showAddJobModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowAddJobModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                  <Plus className="w-5 h-5 text-green-500" />
+                  <span>Add Custom Job</span>
+                </h2>
+                <button
+                  onClick={() => setShowAddJobModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Job Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={newJobData.title}
+                      onChange={(e) => setNewJobData(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., Software Engineer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Company *
+                    </label>
+                    <input
+                      type="text"
+                      value={newJobData.company}
+                      onChange={(e) => setNewJobData(prev => ({ ...prev, company: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., Google"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      value={newJobData.location}
+                      onChange={(e) => setNewJobData(prev => ({ ...prev, location: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="e.g., Cape Town"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Min Salary (R)
+                    </label>
+                    <input
+                      type="number"
+                      value={newJobData.salary_min}
+                      onChange={(e) => setNewJobData(prev => ({ ...prev, salary_min: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="50000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Max Salary (R)
+                    </label>
+                    <input
+                      type="number"
+                      value={newJobData.salary_max}
+                      onChange={(e) => setNewJobData(prev => ({ ...prev, salary_max: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="80000"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Job Type
+                    </label>
+                    <select
+                      value={newJobData.job_type}
+                      onChange={(e) => setNewJobData(prev => ({ ...prev, job_type: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="Full-time">Full-time</option>
+                      <option value="Part-time">Part-time</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Temporary">Temporary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Application URL
+                    </label>
+                    <input
+                      type="url"
+                      value={newJobData.url}
+                      onChange={(e) => setNewJobData(prev => ({ ...prev, url: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="https://company.com/careers"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Job Description
+                  </label>
+                  <textarea
+                    value={newJobData.description}
+                    onChange={(e) => setNewJobData(prev => ({ ...prev, description: e.target.value }))}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    placeholder="Describe the role, responsibilities, and what you'll be doing..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Requirements (one per line)
+                  </label>
+                  <textarea
+                    value={newJobData.requirements}
+                    onChange={(e) => setNewJobData(prev => ({ ...prev, requirements: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    placeholder="5+ years experience&#10;React/Node.js&#10;Bachelor's degree"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Benefits (one per line)
+                  </label>
+                  <textarea
+                    value={newJobData.benefits}
+                    onChange={(e) => setNewJobData(prev => ({ ...prev, benefits: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    placeholder="Medical Aid&#10;Pension Fund&#10;Flexible Hours"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => setShowAddJobModal(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddJob}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Job</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   if (loading) {
     return (
@@ -990,6 +1252,9 @@ const JobSearchPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Job Modal */}
+      <AddJobModal />
     </div>
   );
 };
