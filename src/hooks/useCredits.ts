@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useAuth } from './useAuth';
-import { getUserCredits, getUserCreditBalance, checkUserCredits, CREDIT_COSTS } from '@/lib/credits';
+import { useState, useEffect } from "react";
+import { useAuth } from "./useAuth";
+import {
+  getUserCredits,
+  getUserCreditBalance,
+  checkUserCredits,
+  CREDIT_COSTS,
+} from "@/lib/credits";
+import { supabase } from "@/lib/supabase";
 
 export const useCredits = () => {
   const { user } = useAuth();
@@ -12,17 +18,17 @@ export const useCredits = () => {
 
   const refreshCredits = async () => {
     if (!user) return;
-    
+
     try {
       const [creditsData, balanceData] = await Promise.all([
-        getUserCredits(user.id),
-        getUserCreditBalance(user.id)
+        getUserCredits(supabase, user.id),
+        getUserCreditBalance(supabase, user.id),
       ]);
-      
+
       setCredits(creditsData);
       setBalance(balanceData);
     } catch (error) {
-      console.error('Error refreshing credits:', error);
+      console.error("Error refreshing credits:", error);
     }
   };
 
@@ -32,7 +38,7 @@ export const useCredits = () => {
         setLoading(false);
         return;
       }
-      
+
       await refreshCredits();
       setLoading(false);
     };
@@ -42,12 +48,20 @@ export const useCredits = () => {
 
   const canAffordInterview = async (): Promise<boolean> => {
     if (!user) return false;
-    return await checkUserCredits(user.id, CREDIT_COSTS.INTERVIEW_SESSION);
+    return await checkUserCredits(
+      supabase,
+      user.id,
+      CREDIT_COSTS.INTERVIEW_SESSION
+    );
   };
 
   const canAffordCV = async (): Promise<boolean> => {
     if (!user) return false;
-    return await checkUserCredits(user.id, CREDIT_COSTS.CV_GENERATION);
+    return await checkUserCredits(
+      supabase,
+      user.id,
+      CREDIT_COSTS.CV_GENERATION
+    );
   };
 
   const hasEnoughCredits = (requiredCredits: number): boolean => {
@@ -72,6 +86,6 @@ export const useCredits = () => {
     hasEnoughCredits,
     getInterviewsAvailable,
     getCVsAvailable,
-    CREDIT_COSTS
+    CREDIT_COSTS,
   };
 };
