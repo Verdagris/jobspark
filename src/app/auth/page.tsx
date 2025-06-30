@@ -402,7 +402,6 @@ const AuthPageContent = () => {
                     <p className="text-lg text-slate-600 mb-10 leading-relaxed">
                         Join thousands of professionals accelerating their careers with AI-powered tools.
                     </p>
-<br/>
                    {/* Tutorial Video */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-lg">
             <h3 className="font-semibold text-slate-900 mb-4 flex items-center justify-center space-x-2">
