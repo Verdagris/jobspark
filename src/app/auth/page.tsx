@@ -459,12 +459,16 @@ const AuthPageContent = () => {
               transition={{ duration: 0.6 }}
               className="max-w-md mx-auto lg:mx-0"
             >
-              <Link href="/" className="flex items-center space-x-2 mb-6 group">
+              <Link
+                href="https://jobspark.co.za"
+                className="flex items-center space-x-2 mb-6 group"
+              >
                 <Sparkles className="w-6 h-6 text-green-600" />
                 <span className="text-xl font-bold text-slate-900">
                   JobSpark
                 </span>
               </Link>
+
               <h1 className="text-3xl font-bold text-slate-900 mb-3">
                 Your Career
                 <br />
@@ -478,6 +482,32 @@ const AuthPageContent = () => {
               </p>
               <AnimatedBenefits />
             </motion.div>
+            <div className="flex">
+              <span
+                style={{
+                  height: "100%",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: "0.8rem",
+                }}
+              >
+                built with
+              </span>
+              <Link
+                href="https://bolt.new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 group"
+              >
+                <img
+                  src="/bolt.svg"
+                  className="animate-spin-slow"
+                  width={80}
+                  height={80}
+                />
+              </Link>
+            </div>
           </div>
 
           {/* Right Side */}
