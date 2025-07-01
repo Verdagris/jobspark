@@ -17,10 +17,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Configure site URL for production
-const siteUrl =
-  process.env.NODE_ENV === "production"
-    ? "https://app.jobspark.co.za"
-    : "http://localhost:3000";
+const siteUrl = "https://app.jobspark.co.za";
 
 // Update auth configuration for production
 if (typeof window !== "undefined") {
