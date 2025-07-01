@@ -118,7 +118,7 @@ export const CreditBalance = ({
             lowBalance ? "text-red-700" : "text-green-700"
           }`}
         >
-          {formatCredits(currentBalance)} credits [removed for demo]
+          {formatCredits(currentBalance)}
         </span>
         {!canAffordInterview && (
           <AlertTriangle className="w-4 h-4 text-red-600" />
