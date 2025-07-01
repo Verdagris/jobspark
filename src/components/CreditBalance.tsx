@@ -118,7 +118,7 @@ export const CreditBalance = ({
             lowBalance ? "text-red-700" : "text-green-700"
           }`}
         >
-          {formatCredits(currentBalance)}
+          {formatCredits(currentBalance)} credits
         </span>
         {!canAffordInterview && (
           <AlertTriangle className="w-4 h-4 text-red-600" />
@@ -153,12 +153,13 @@ export const CreditBalance = ({
         </Link>
       )}
 
-      {interviewsAvailable > 0 && (
-        <span className="text-xs text-slate-500">
-          {interviewsAvailable} interview{interviewsAvailable !== 1 ? "s" : ""}{" "}
-          available
-        </span>
-      )}
+      {/* {interviewsAvailable > 0 && ( */}
+      <span className="text-xs text-slate-500">
+        Note: Credit system removed for demo
+        {/* {interviewsAvailable} interview{interviewsAvailable !== 1 ? "s" : ""}{" "}
+          available */}
+      </span>
+      {/* )} */}
 
       {error && (
         <span className="text-xs text-red-500" title={error}>
