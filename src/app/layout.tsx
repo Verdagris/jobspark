@@ -1,5 +1,6 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "@uiw/react-markdown-preview/markdown.css";
 
 const inter = Inter({ subsets: ["latin"] });
 

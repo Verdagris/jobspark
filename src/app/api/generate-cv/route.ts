@@ -67,24 +67,26 @@ export async function POST(request: NextRequest) {
     });
 
     const prompt = `
-You are an expert CV writer specializing in South African job market. Create a professional, ATS-friendly CV based on the following information:
+You are an expert CV writer specializing in the South African job market. Create a professional, ATS-friendly CV based on the following information.
 
 **Personal Information:**
 - Name: ${cvData.personalInfo.fullName}
 - Email: ${cvData.personalInfo.email}
 - Phone: ${cvData.personalInfo.phone}
 - Location: ${cvData.personalInfo.location}
-- Professional Summary: ${cvData.personalInfo.professionalSummary}
+
+**Professional Summary:**
+${cvData.personalInfo.professionalSummary}
 
 **Work Experience:**
 ${cvData.experiences
   .map(
     (exp) => `
-- ${exp.title} at ${exp.company} (${exp.startDate} - ${
+- **${exp.title}** at ${exp.company} (${exp.startDate} - ${
       exp.isCurrent ? "Present" : exp.endDate
     })
-  Location: ${exp.location || "Not specified"}
-  Description: ${exp.description}
+  - Location: ${exp.location || "Not specified"}
+  - Description: ${exp.description}
 `
   )
   .join("\n")}
@@ -93,9 +95,9 @@ ${cvData.experiences
 ${cvData.education
   .map(
     (edu) => `
-- ${edu.degree} from ${edu.institution} (${edu.graduationYear})
-  Location: ${edu.location || "Not specified"}
-  ${edu.description ? `Description: ${edu.description}` : ""}
+- **${edu.degree}** from ${edu.institution} (${edu.graduationYear})
+  - Location: ${edu.location || "Not specified"}
+  - ${edu.description ? `Description: ${edu.description}` : ""}
 `
   )
   .join("\n")}
@@ -111,24 +113,19 @@ ${
 
 **CV Style:** ${cvType}
 
-**Requirements:**
-1. Create a professional, well-structured CV suitable for the South African job market
-2. Use proper formatting with clear sections
-3. Make it ATS-friendly with appropriate keywords
-4. Keep it concise but comprehensive (2-3 pages max)
-5. Use action verbs and quantify achievements where possible
-6. Include a compelling professional summary
-7. Format as clean, readable text that can be easily copied
+---
+**OUTPUT REQUIREMENTS**
+1.  **Format:** Generate the entire CV using **Markdown**.
+2.  **Structure:** Use headings (#, ##, ###), bold (**text**), and bulleted lists (-) for clear, professional sections.
+3.  **Content:**
+    - Start with a main heading for the applicant's name.
+    - Follow with a subheading for contact information.
+    - Create sections for "Professional Summary", "Work Experience", "Education", and "Skills".
+    - Under "Work Experience", use bullet points to detail responsibilities and achievements for each role.
+4.  **Tone:** Professional, concise, and action-oriented.
+5.  **Exclusivity:** Do NOT include any explanatory text, greetings, or sign-offs before or after the CV content. The output should begin directly with the applicant's name heading.
 
-**Output the CV in clean, formatted text that includes:**
-- Header with contact information
-- Professional Summary
-- Work Experience (reverse chronological order)
-- Education
-- Skills
-- Any additional relevant sections
-
-Please generate the CV now:
+Generate the Markdown CV now:
 `;
 
     const result = await model.generateContent(prompt);

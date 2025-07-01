@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -33,13 +33,14 @@ import {
   createGeneratedCV,
   getUserSavedJobs,
   getSavedJobById,
-  // --- REQUIRED DATABASE FUNCTIONS ---
-  // You must create these functions in your database library (e.g., /lib/database.js)
   updateGeneratedCV,
   deleteGeneratedCV,
 } from "@/lib/database";
 import { generateCV } from "@/lib/api";
-import { exportToPDF } from "@/lib/pdf-export";
+import MDEditor from "@uiw/react-md-editor";
+import { CVPreview } from "@/components/CVPreview";
+import { parseCVMarkdown } from "@/lib/cv-parser";
+import { exportCvDataToPdf } from "@/lib/pdf-export";
 
 const CVBuilderPage = () => {
   const { user } = useAuth();
@@ -47,6 +48,14 @@ const CVBuilderPage = () => {
   const [userData, setUserData] = useState<any>(null);
   const [cvs, setCVs] = useState<any[]>([]);
   const [selectedCV, setSelectedCV] = useState<any>(null);
+
+  const parsedCvData = useMemo(() => {
+    if (selectedCV?.content) {
+      return parseCVMarkdown(selectedCV.content);
+    }
+    return null;
+  }, [selectedCV]);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [showNewCVForm, setShowNewCVForm] = useState(false);
   const [newCVData, setNewCVData] = useState({
@@ -171,21 +180,21 @@ const CVBuilderPage = () => {
 
   const handleSaveEdit = async () => {
     if (!selectedCV) return;
-
     setIsUpdating(true);
     try {
-      const updatedCV = await updateGeneratedCV(
-        selectedCV.id,
-        editingContent as any
-      );
+      // The content might be undefined, so default to an empty string.
+      const contentToSave = editingContent || "";
+
+      const updatedCV = await updateGeneratedCV(selectedCV.id, {
+        content: contentToSave,
+      });
 
       const updatedCVsList = cvs.map((cv) =>
         cv.id === selectedCV.id ? updatedCV : cv
       );
       setCVs(updatedCVsList);
       setSelectedCV(updatedCV);
-
-      handleCancelEdit(); // Exits edit mode and clears content
+      handleCancelEdit();
     } catch (error) {
       console.error("Error updating CV:", error);
       alert("Failed to save changes.");
@@ -260,30 +269,6 @@ const CVBuilderPage = () => {
     }
   };
 
-  const handleDownloadCV = () => {
-    if (!selectedCV || !userData) return;
-
-    try {
-      const cvData = {
-        personalInfo: {
-          fullName: userData.profile?.full_name || "",
-          email: userData.profile?.email || user?.email || "",
-          phone: userData.profile?.phone || "",
-          location: userData.profile?.location || "",
-          professionalSummary: userData.profile?.professional_summary || "",
-        },
-        experiences: userData.experiences,
-        education: userData.education,
-        skills: userData.skills,
-      };
-
-      exportToPDF(cvData, selectedCV.title);
-    } catch (error) {
-      console.error("Error downloading CV:", error);
-      alert("Failed to download CV. Please try again.");
-    }
-  };
-
   const handleSavedJobChange = async (jobId: string) => {
     setNewCVData((prev) => ({ ...prev, savedJobId: jobId }));
     if (jobId) {
@@ -305,6 +290,14 @@ const CVBuilderPage = () => {
     }
   };
 
+  const handleDownloadCV = () => {
+    if (!parsedCvData) {
+      alert("CV data is not ready, please wait a moment and try again.");
+      return;
+    }
+    // Call the export function with the structured data object.
+    exportCvDataToPdf(parsedCvData, selectedCV.title);
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -672,7 +665,7 @@ const CVBuilderPage = () => {
                 </motion.div>
               ) : selectedCV ? (
                 <motion.div
-                  key={selectedCV.id} // Use a unique key to force re-render on CV change
+                  key={selectedCV.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -709,44 +702,49 @@ const CVBuilderPage = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                     >
-                      <textarea
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        className="w-full min-h-[60vh] p-4 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm leading-relaxed bg-slate-50/50 resize-y"
-                        placeholder="Edit your CV content here..."
-                      />
-                      <div className="flex justify-end space-x-3 mt-4">
-                        <button
-                          onClick={handleCancelEdit}
-                          className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleSaveEdit}
-                          disabled={isUpdating}
-                          className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                        >
-                          {isUpdating ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Save className="w-4 h-4" />
-                          )}
-                          <span>
-                            {isUpdating ? "Saving..." : "Save Changes"}
-                          </span>
-                        </button>
+                      {/* Add a container for better spacing and styling */}
+                      <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+                        <div data-color-mode="light">
+                          <MDEditor
+                            value={editingContent}
+                            onChange={setEditingContent as any}
+                            height={600} // Adjusted height for tab view
+                            preview="edit" // Use tabs instead of side-by-side
+                            previewOptions={{
+                              // You can optionally style the preview pane
+                              className:
+                                "prose prose-sm sm:prose-base max-w-none p-4",
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-3 mt-4 pt-4 border-t border-slate-200">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={isUpdating}
+                            className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                          >
+                            {isUpdating ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Save className="w-4 h-4" />
+                            )}
+                            <span>
+                              {isUpdating ? "Saving..." : "Save Changes"}
+                            </span>
+                          </button>
+                        </div>
                       </div>
                     </motion.div>
                   ) : (
-                    <div
-                      className="prose max-w-none prose-sm sm:prose-base"
-                      dangerouslySetInnerHTML={{
-                        __html: selectedCV.content
-                          .replace(/\n/g, "<br />")
-                          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
-                      }}
-                    />
+                    <div id="cv-preview-area">
+                      <CVPreview markdownContent={selectedCV.content} />
+                    </div>
                   )}
                 </motion.div>
               ) : (
