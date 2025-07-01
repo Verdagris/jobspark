@@ -110,7 +110,7 @@ BEGIN
     SELECT COUNT(*) 
     FROM generated_cvs 
     WHERE user_id = NEW.user_id AND is_active = true
-  ) >= 3 THEN
+  ) >= 10 THEN
     RAISE EXCEPTION 'Maximum of 3 active CVs allowed per user';
   END IF;
   RETURN NEW;

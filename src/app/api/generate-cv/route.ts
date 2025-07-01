@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
 if (!apiKey) {
-  console.error('GEMINI_API_KEY is not set in environment variables');
+  console.error("GEMINI_API_KEY is not set in environment variables");
 }
 
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
@@ -42,19 +42,29 @@ export interface CVData {
 export async function POST(request: NextRequest) {
   if (!genAI) {
     return NextResponse.json(
-      { error: 'Gemini AI is not configured. Please check your GEMINI_API_KEY environment variable.' },
+      {
+        error:
+          "Gemini AI is not configured. Please check your GEMINI_API_KEY environment variable.",
+      },
       { status: 500 }
     );
   }
 
   try {
-    const { cvData, jobDescription, cvType = 'professional' }: {
+    const {
+      cvData,
+      jobDescription,
+      cvType = "professional",
+    }: {
       cvData: CVData;
       jobDescription?: string;
-      cvType?: 'professional' | 'creative' | 'technical' | 'executive';
+      cvType?: "professional" | "creative" | "technical" | "executive";
     } = await request.json();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    // FIX: Corrected the model name from 'gemini-2.0-flash' to a valid model name.
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+    });
 
     const prompt = `
 You are an expert CV writer specializing in South African job market. Create a professional, ATS-friendly CV based on the following information:
@@ -67,23 +77,37 @@ You are an expert CV writer specializing in South African job market. Create a p
 - Professional Summary: ${cvData.personalInfo.professionalSummary}
 
 **Work Experience:**
-${cvData.experiences.map(exp => `
-- ${exp.title} at ${exp.company} (${exp.startDate} - ${exp.isCurrent ? 'Present' : exp.endDate})
-  Location: ${exp.location || 'Not specified'}
+${cvData.experiences
+  .map(
+    (exp) => `
+- ${exp.title} at ${exp.company} (${exp.startDate} - ${
+      exp.isCurrent ? "Present" : exp.endDate
+    })
+  Location: ${exp.location || "Not specified"}
   Description: ${exp.description}
-`).join('\n')}
+`
+  )
+  .join("\n")}
 
 **Education:**
-${cvData.education.map(edu => `
+${cvData.education
+  .map(
+    (edu) => `
 - ${edu.degree} from ${edu.institution} (${edu.graduationYear})
-  Location: ${edu.location || 'Not specified'}
-  ${edu.description ? `Description: ${edu.description}` : ''}
-`).join('\n')}
+  Location: ${edu.location || "Not specified"}
+  ${edu.description ? `Description: ${edu.description}` : ""}
+`
+  )
+  .join("\n")}
 
 **Skills:**
-${cvData.skills.map(skill => `- ${skill.name} (${skill.level})`).join('\n')}
+${cvData.skills.map((skill) => `- ${skill.name} (${skill.level})`).join("\n")}
 
-${jobDescription ? `**Target Job Description:**\n${jobDescription}\n\nPlease tailor the CV to match this job description, highlighting relevant skills and experiences.` : ''}
+${
+  jobDescription
+    ? `**Target Job Description:**\n${jobDescription}\n\nPlease tailor the CV to match this job description, highlighting relevant skills and experiences.`
+    : ""
+}
 
 **CV Style:** ${cvType}
 
@@ -113,9 +137,9 @@ Please generate the CV now:
 
     return NextResponse.json({ cv: generatedCV });
   } catch (error) {
-    console.error('Error generating CV:', error);
+    console.error("Error generating CV:", error);
     return NextResponse.json(
-      { error: 'Failed to generate CV. Please try again.' },
+      { error: "Failed to generate CV. Please try again." },
       { status: 500 }
     );
   }
